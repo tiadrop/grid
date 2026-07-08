@@ -1,0 +1,28 @@
+{
+  "version": "0.0.1",
+  "description": "2D store and utilities",
+  "name": "@xtia/grid",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./lib/*": null
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "test": "npx jest"
+  },
+  "files": [
+    "lib/"
+  ],
+  "devDependencies": {
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@xtia/pipe2d": "^2.1.0"
+  }
+}
