@@ -249,7 +249,7 @@ export class Cell<T> {
 			});
 		}
 
-		return this.gridView.cells.map((c => costs.get(c) ?? Infinity))
+		return this.gridView.cells.map(costs, () => Infinity)
 			.strict();
 	}
 
