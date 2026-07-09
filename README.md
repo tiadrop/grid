@@ -91,10 +91,13 @@ console.log(world.get(1, 0)); // read the parent: "forest"
 For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadrop/pipe2d) view into the grid's data.
 
 ```ts
-// create a one-way sprite map
-const spriteMap = world.pipe.map(t => t + ".png");
+// create a one-way, player-centred sprite map
+const viewport = world.pipe
+	.oob("mountain")
+	.map(t => t + ".png")
+	.crop(playerX - 5, playerY - 5, 10, 10);
 
-// get a list of locations of cells with mountains
+// or get a list of locations of cells with mountains
 const mountainCells = world.cells.toFlatArrayXY()
 	.filter(cell => cell.value === "mountain")
 	.map(cell => [cell.x, cell.y]);
