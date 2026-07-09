@@ -1,6 +1,6 @@
 {
-  "version": "0.0.2",
-  "description": "2D store and utilities",
+  "version": "0.0.3",
+  "description": "2D store and utilities, with zero-copy regions and transform layers, pathfinding, Pipe2D interop",
   "name": "@xtia/grid",
   "exports": {
     ".": {
