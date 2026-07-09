@@ -22,7 +22,7 @@ npm i @xtia/grid
 ```
 
 ```ts
-import { Grid } from "@xtia/grid";
+import { Grid } from "@xtia/grid"; // ~5.3kb gzipped
 
 // initialise a 30x20 Grid<number> of 0's
 const numGrid = Grid.solid(30, 20, 0);
@@ -90,6 +90,10 @@ console.log(world.get(1, 0)); // read the parent: "forest"
 
 For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadrop/pipe2d) view into the grid's data.
 
+```ts
+const spriteMap = world.pipe.map(t => t + ".png");
+```
+
 ## Cell interface
 
 `grid.cells` provides a Pipe2D, for convenient transformation, of live-view interfaces relating to positions in the grid.
@@ -98,7 +102,7 @@ For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadro
 const topLeft = world.cells.get(0, 0);
 console.log(topLeft.value); // "mountain"
 
-topLeft.value = "forest; // modifies the underlying data
+topLeft.value = "forest"; // modifies the underlying data
 console.log(spriteMap.get(0, 0)); // now "forest.png";
 
 // navigate by offset
