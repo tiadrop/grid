@@ -25,6 +25,11 @@ type CostMapOptions<T> = PathFindOptions<T> & {
 	stopAt?: [number, number] | Cell<T>;
 }
 
+type VisibilityOptions = {
+	maxDistance?: number;
+	boundariesVisible?: boolean;
+}
+
 export enum TraversalType {
 	cardinal,
 	diagonal,
@@ -35,12 +40,6 @@ type CostFunc<T> = (cell: Cell<T>, context: {
 	traversalType: TraversalType;
 	from: Cell<T>;
 }) => number
-
-export enum Visibility {
-	visible,
-	hidden,
-	wall
-}
 
 export class Cell<T> {
 	constructor(
@@ -299,42 +298,41 @@ export class Cell<T> {
 	}
 
 	/**
-	 * Creates a Pipe2D of values representing each location's visibility from this cell, depending on the user-provided `isWall` predicate.
+	 * Creates a Pipe2D of values representing each location's visibility from this cell, depending on the user-provided `isClear` predicate.
 	 * 
 	 * The resulting visibility map is live; changes to the Grid can affect subsequent queries to the map.
-	 * @param isWall Function that returns true for cells that block vision.
-	 * @param maxDistance Optional maximum Euclidian visibility distance.
+	 * @param isClear Function that returns true for cells that allow vision.
+	 * @param options Optional configuration; Euclidian visibility distance, boundaries visible.
 	 * @returns Map of every cell's visibility from this cell
 	 */
 	createVisibilityMap(
-		isWall: (cell: Cell<T>) => boolean,
-		maxDistance: number = Infinity
-	): Pipe2D<Visibility> {
-		return new Pipe2D<Visibility>(
+		isClear: (cell: Cell<T>) => boolean,
+		options: VisibilityOptions = {},
+	): Pipe2D<boolean> {
+		const maxDistance = options.maxDistance ?? Infinity;
+		const boundariesVisible = options.boundariesVisible ?? true;
+		return new Pipe2D<boolean>(
 			this.gridView.width,
 			this.gridView.height,
 			(x, y) => {
-				if (isWall(this)) return Visibility.hidden;
-				const distance = getDistance(this, { x, y });
-				
-				if (distance > maxDistance) {
-					return Visibility.hidden;
+				if (!isClear(this)) {
+					return x === this.x && y === this.y ? boundariesVisible : false;
 				}
-				
-				for (const cell of this.getLineTo({ x, y })) {
-					if (isWall(cell)) {
-						if (cell.x === this.x && cell.y === this.y) {
-							continue;
-						}
 
-						if (cell.x === x && cell.y === y) {
-							return Visibility.wall;
-						}
-						return Visibility.hidden;
+				if (maxDistance < Infinity) {
+					if (getDistance(this, { x, y }) > maxDistance) {
+						return false;
 					}
 				}
 				
-				return Visibility.visible;
+				for (const cell of this.getLineTo({ x, y })) {
+					if (isClear(cell)) continue;
+					return cell.x === x && cell.y === y
+						? boundariesVisible
+						: false;
+				}
+				
+				return true;
 			}
 		);
 	}

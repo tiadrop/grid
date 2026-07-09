@@ -1,1 +1,1 @@
-export { Grid, type GridBase, type Cell, TraversalType, Visibility } from "./grid.js";
+export { Grid, type GridBase, type Cell, TraversalType } from "./grid.js";
