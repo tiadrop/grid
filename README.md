@@ -110,7 +110,7 @@ Cells provide methods for locational utilities such as pathfinding and visibilit
 Cells are unique to, owned by, and coordinated relative to the view that provided them. Their pathfinding and visibility mapping features are unaware of space outside of their view's bounds.
 
 ### Path finding
-```
+```ts
 const costs = [1, Infinity, Infinity, 2]; // grass=1, water/mountain=impassable, forest=2
 
 const start = world.cells.get(5, 5);
