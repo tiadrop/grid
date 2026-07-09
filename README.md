@@ -91,7 +91,12 @@ console.log(world.get(1, 0)); // read the parent: "forest"
 For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadrop/pipe2d) view into the grid's data.
 
 ```ts
+// create a one-way sprite map
 const spriteMap = world.pipe.map(t => t + ".png");
+
+// get a list of cells with mountains
+const mountainCells = world.cells.toFlatArrayXY().filter(c => c.value === "mountain");
+
 ```
 
 ## Cell interface
@@ -153,9 +158,6 @@ const visibility = start.createVisibilityMap(
 // any 2d source, including visibility maps, can be used as a mask for paste/fill operations
 // paste(source: Source2D<T>, mask?: Source2D<boolean>)
 screenGrid.paste(spriteMap, visibility);
-
-// using pipe2d's convenience
-const mountainCells = world.cells.toFlatArrayXY().filter(c => c.value === "mountain");
 ```
 
 ### Reusing path data
