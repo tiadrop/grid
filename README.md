@@ -151,7 +151,7 @@ const mountainCells = world.cells.toFlatArrayXY().filter(c => c.value === 2);
 
 ### Reusing path data
 
-Use `cell.getPathMap(costFunc)` to create a Pipe2D of optimal paths from the parent cell. The grid space is explored once to produce an internal traversal map, and paths to individual cells are constructed form that data (and cached) when that pipe is queried.
+Use `cell.getPathMap(costFunc)` to create a Pipe2D of optimal paths from the parent cell. The grid space is explored once to produce an internal traversal map, and paths to individual cells are constructed from that data (and cached) when that pipe is queried.
 
 ```ts
 const pathMap = start.getPathMap(c => costs[c]);
@@ -159,6 +159,8 @@ const pathMap = start.getPathMap(c => costs[c]);
 const pathToCentre = pathMap.get(50, 50);
 const pathToCorner = pathMap.get(99, 99);
 ```
+
+Unlike visibility maps, which are lazily evaluated according to the supplied `isWall` function *when the map is queried*, path maps necessarily reflect the underlying data *when the map is created*. This distinction is hinted through the `create*` vs `get*` naming.
 
 ## The storage layer
 
