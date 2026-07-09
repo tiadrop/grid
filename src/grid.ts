@@ -49,6 +49,9 @@ export class Cell<T> {
 		private gridView: Grid<T>,
 	) {}
 
+	/**
+	 * The value held in this cell.
+	 */
 	get value() {
 		return this.gridView.get(this.x, this.y);
 	}
@@ -57,6 +60,11 @@ export class Cell<T> {
 		this.gridView.set(this.x, this.y, v);
 	}
 
+	/**
+	 * Returns an array of neighbouring cells.
+	 * @param includeDiagonals 
+	 * @returns Neighbouring cells
+	 */
 	getNeighbours(includeDiagonals: boolean = false) {
 		const offsets = includeDiagonals 
 			? [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
@@ -68,12 +76,27 @@ export class Cell<T> {
 			.map(([tx, ty]) => this.gridView.cells.get(tx, ty));
 	}
 
+	/**
+	 * Gets a cell located at a position relative to this one.
+	 * 
+	 * If the relative position is outside of the grid's bounds, `undefined` is returned.
+	 * @param xDelta X offset
+	 * @param yDelta Y offset
+	 * @returns Relatively-positioned cell, if it exists, otherwise undefined.
+	 */
 	look(xDelta: number, yDelta: number) {
 		const [x, y] = [this.x + xDelta, this.y + yDelta];
 		if (x < 0 || x >= this.gridView.width || y < 0 || y >= this.gridView.height) return undefined;
 		return this.gridView.cells.get(xDelta + this.x, yDelta + this.y);
 	}
 
+	/**
+	 * Computes the optimal path from this Cell to another, based on a cell costing predicate.
+	 * @param target Destination cell or [x, number] coordinates
+	 * @param getCost Function that returns the movement cost for traversing a cell. Return `Infinity` for impassable cells.
+	 * @param options Configuration for pathfinding behavior (max cost, diagonal movement, etc).
+	 * @returns Optimal path as array of Cells, or null if no path exists.
+	 */
 	findPath(
 		target: Cell<T> | [number, number],
 		getCost: CostFunc<T>,
@@ -92,6 +115,12 @@ export class Cell<T> {
 		return pathMap?.get(...targetXY);
 	}
 
+	/**
+	 * Computes a map of optimal paths from this cell, based on a cell costing predicate.
+	 * @param getCost Function that returns the movement cost for traversing a cell
+	 * @param options Configuration for pathfinding behavior (max cost, diagonal movement, etc)
+	 * @returns Map containing optimal paths to all reachable cells. Unreachable cells are mapped as `null`.
+	 */
 	getPathMap(
 		getCost: CostFunc<T>,
 		options: PathFindOptions<T> = {}
@@ -103,6 +132,12 @@ export class Cell<T> {
 		)
 	}
 
+	/**
+	 * Computes a map of optimal path costs from this Cell, based on a cell costing predicate.
+	 * @param getCost Function that returns the movement cost for traversing a cell
+	 * @param options Configuration for pathfinding behavior (max cost, diagonal movement, etc)
+	 * @returns Map containing costs for all reachable cells. Unreachable cells are costed `Infinity`.
+	 */
 	getCostMap(
 		getCost: CostFunc<T>,
 		options: CostMapOptions<T> = {}
@@ -263,6 +298,14 @@ export class Cell<T> {
 		}
 	}
 
+	/**
+	 * Creates a Pipe2D of values representing each location's visibility from this cell, depending on the user-provided `isWall` predicate.
+	 * 
+	 * The resulting visibility map is live; changes to the Grid can affect subsequent queries to the map.
+	 * @param isWall Function that returns true for cells that block vision.
+	 * @param maxDistance Optional maximum Euclidian visibility distance.
+	 * @returns Map of every cell's visibility from this cell
+	 */
 	createVisibilityMap(
 		isWall: (cell: Cell<T>) => boolean,
 		maxDistance: number = Infinity
@@ -271,6 +314,7 @@ export class Cell<T> {
 			this.gridView.width,
 			this.gridView.height,
 			(x, y) => {
+				if (isWall(this)) return Visibility.hidden;
 				const distance = getDistance(this, { x, y });
 				
 				if (distance > maxDistance) {
@@ -279,7 +323,6 @@ export class Cell<T> {
 				
 				for (const cell of this.getLineTo({ x, y })) {
 					if (isWall(cell)) {
-						// Skip the starting cell (viewer's position)
 						if (cell.x === this.x && cell.y === this.y) {
 							continue;
 						}
@@ -296,6 +339,7 @@ export class Cell<T> {
 		);
 	}
 
+
 }
 
 function getDistance(c1: {x: number, y: number}, c2: {x: number, y: number}): number {
@@ -304,8 +348,11 @@ function getDistance(c1: {x: number, y: number}, c2: {x: number, y: number}): nu
 
 export class Grid<T> {
 
-	private parentGet: GetXYFunc<T>;
-	private parentSet: (x: number, y: number, value: T) => void;
+	/**
+	 * A `Pipe2D` of this grid's Cells, providing location-based functionality
+	 * 
+	 * @see https://github.com/tiadrop/pipe2d
+	 */
 	readonly cells = new Pipe2D(this.width, this.height, (x, y) => {
 		return new Cell(x, y, this)
 	}).strict().withCache();
@@ -313,27 +360,32 @@ export class Grid<T> {
 	protected constructor(
 		public readonly width: number,
 		public readonly height: number,
-		get: GetXYFunc<T>,
-		set: (x: number, y: number, value: T) => void,
+		private parentGet: GetXYFunc<T>,
+		private parentSet: (x: number, y: number, value: T) => void,
 		private batch: (cb: () => void) => void,
-	) {
-		this.parentGet = get;
-		this.parentSet = set;
-	}
+	) {}
 
-	private writeMasks: {mask: Source2D<boolean>}[] = [];
-
-
+	/**
+	 * A `Pipe2D` of this grid's values.
+	 * 
+	 * `Pipe2D` is a lazily-evaluated 2D pipeline. Values produced by the pipeline reflect the grid's state when the pipeline is queried.
+	 */
 	pipe = new Pipe2D(this);
 
-	private isWritable(x: number, y: number) {
-		return !this.writeMasks.some(mask => !mask.mask.get(x, y));
-	}
-
+	/**
+	 * Executes a custom callback without triggering any `change` events on the underlying GridBase until the callback concludes
+	 * @param fn Callback to run while change events are suppressed
+	 */
 	batchUpdate(fn: () => void) {
 		this.batch(fn);
 	}
 
+	/**
+	 * Retrieves the value at the specified coordinates.
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @returns Value read from this grid position
+	 */
 	get(x: number, y: number) {
 		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
 			throw new RangeError("Coordinates out of bounds");
@@ -341,52 +393,67 @@ export class Grid<T> {
 		return this.parentGet(x, y);
 	}
 
+	/**
+	 * Sets a value at the specified coordinates.
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @param value Value to store
+	 */
 	set(x: number, y: number, value: T) {
 		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
 			throw new RangeError("Coordinates out of bounds");
 		}
-		if (this.isWritable(x, y)) this.parentSet(x, y, value);
+		this.parentSet(x, y, value);
 	}
 
+	/**
+	 * Sets a value at the specified coordinates if they are within the grid's dimensions.
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @param value Value to store
+	 * @returns `true` if the write was successful (in-bounds), otherwise `false`.
+	 */
 	trySet(x: number, y: number, value: T): boolean {
     	if (x < 0 || x >= this.width || y < 0 || y >= this.height) return false;
     	this.set(x, y, value);
     	return true;
 	}
 
-	fill(value: T) {
+	/**
+	 * Sets every cell's value.
+	 * @param value Value to store
+	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
+	 */
+	fill(value: T, mask?: Source2D<boolean>) {
 		this.batchUpdate(() => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					const tx = x;
-					const ty = y;
-					this.trySet(tx, ty, value);
+					if (mask && !mask.get(x, y)) continue;
+					this.trySet(x, y, value);
 				}
 			}
 		});
 	}
 
-	paste(x: number, y: number, source: Source2D<T>) {
+	/**
+	 * Copies values from a 2D source (Grid, Pipe2D, etc) to this Grid.
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @param source Source to copy values from
+	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
+	 */
+	paste(x: number, y: number, source: Source2D<T>, mask?: Source2D<boolean>) {
 		const cachedSource = new GridBase(source);
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
 					const tx = ox + x;
 					const ty = oy + y;
+					if (mask && !mask.get(tx, ty)) continue;
 					this.trySet(tx, ty, cachedSource.get(ox, oy));
 				}
 			}
 		});
-	}
-
-	applyWriteMask(mask: Source2D<boolean>) {
-		const unique = {mask};
-		this.writeMasks.push(unique);
-		return () => {
-			const idx = this.writeMasks.indexOf(unique);
-			if (idx == -1) throw new Error("Mask was not present");
-			this.writeMasks.splice(idx, 1);
-		}
 	}
 
 	*[Symbol.iterator](): IterableIterator<{x: number, y: number, value: T}> {
@@ -397,6 +464,10 @@ export class Grid<T> {
 		}
 	}
 
+	/**
+	 * Perform a callback on every value in this Grid
+	 * @param callback Callback to run for every cell
+	 */
 	forEach(callback: (value: T, x: number, y: number) => void): void {
 		for (let y = 0; y < this.height; y++) {
 			for (let x = 0; x < this.width; x++) {
@@ -405,138 +476,28 @@ export class Grid<T> {
 		}
 	}
 
-	getVisibilityMap(
-		originX: number,
-		originY: number,
-		maxDistance: number,
-		isWall: (value: T, x: number, y: number) => boolean,
-		options?: {
-			startAngle?: Angle;
-			endAngle?: Angle;
-			includeWalls?: boolean;
-			angleStep?: Angle;
-		}
-	): Pipe2D<boolean> {
-		const {
-			startAngle = {asTurns: 0},
-			endAngle = {asTurns: 1},
-			includeWalls = false,
-			angleStep = {asDegrees: 1}
-		} = options || {};
-		
-		const visibilityGrid = new GridBase<boolean>(this.width, this.height, () => false);
-		
-		const startRad = angleToRadians(startAngle);
-		const endRad = angleToRadians(endAngle);
-		const stepRad = angleToRadians(angleStep);
-		
-		const totalAngle = endRad > startRad 
-			? endRad - startRad 
-			: endRad + (2 * Math.PI) - startRad;
-		
-		const effectiveStepRad = Math.max(0.001, Math.min(stepRad, totalAngle));
-		const steps = Math.ceil(totalAngle / effectiveStepRad);
-		
-		for (let i = 0; i <= steps; i++) {
-			const angle = startRad + i * effectiveStepRad;
-			if (angle > endRad && i > 0) break; // Don't overshoot
-			
-			const endX = Math.round(originX + maxDistance * Math.cos(angle));
-			const endY = Math.round(originY + maxDistance * Math.sin(angle));
-			
-			let x0 = originX;
-			let y0 = originY;
-			let x1 = endX;
-			let y1 = endY;
-			
-			const dx = Math.abs(x1 - x0);
-			const dy = Math.abs(y1 - y0);
-			const sx = x0 < x1 ? 1 : -1;
-			const sy = y0 < y1 ? 1 : -1;
-			let err = dx - dy;
-			
-			while (true) {
-				if (x0 < 0 || x0 >= this.width || y0 < 0 || y0 >= this.height) {
-					break;
-				}
-				
-				const isWallCell = isWall(this.get(x0, y0), x0, y0);
-				
-				if (isWallCell) {
-					if (includeWalls) {
-						visibilityGrid.set(x0, y0, true);
-					}
-					break;
-				} else {
-					visibilityGrid.set(x0, y0, true);
-				}
-				
-				if (x0 === x1 && y0 === y1) break;
-				
-				const e2 = 2 * err;
-				if (e2 > -dy) {
-					err -= dy;
-					x0 += sx;
-				}
-				if (e2 < dx) {
-					err += dx;
-					y0 += sy;
-				}
-			}
-		}
-		
-		return visibilityGrid.pipe;
-	}
-
-	getFloodMap(
-		startX: number,
-		startY: number,
-		predicate: (value: T, x: number, y: number, initialValue: T) => boolean,
-		options?: {
-			includeDiagonals?: boolean;
-			maxDistance?: number;
-		}
-	): Pipe2D<boolean> {
-		const {
-			includeDiagonals = false,
-			maxDistance = Infinity
-		} = options || {};
-		
-		const result = new GridBase<boolean>(this.width, this.height, () => false);
-		
-		const startValue = this.get(startX, startY);
-		if (!predicate(startValue, startX, startY, startValue)) {
-			return result.pipe;
-		}
-		
-		const queue: Array<[number, number, number]> = [[startX, startY, 0]]; // [x, y, distance]
-		result.set(startX, startY, true);
-		
-		while (queue.length > 0) {
-			const [x, y, distance] = queue.shift()!;
-			if (distance >= maxDistance) continue;
-
-			this.cells.get(x, y).getNeighbours(includeDiagonals)
-				.forEach(neighbour => {
-					if (result.get(neighbour.x, neighbour.y)) return;
-					if (predicate(neighbour.value, neighbour.x, neighbour.y, startValue)) {
-						result.set(neighbour.x, neighbour.y, true);
-						queue.push([neighbour.x, neighbour.y, distance + 1]);
-					}
-				});
-		}
-		
-		return result.pipe;
-	}
-
 	combine<U, R>(aux: Source2D<U>, cb: (source: T, aux: U) => R) {
 		const width = Math.min(this.width, aux.width);
 		const height = Math.min(this.height, aux.height);
-		return new GridBase(width, height, (x, y) => {
-			return cb(this.get(x, y), aux.get(x, y))
-		})
+		return new GridBase({
+			width,
+			height,
+			get: (x, y) => {
+				return cb(this.get(x, y), aux.get(x, y))
+			}
+		});
 	}
 
+	/**
+	 * Creates a *two-way* transformed view of this Grid.
+	 * 
+	 * Changes to this grid will be reflected in the resulting view, and vice-versa.
+	 * 
+	 * For a read-only, lazily evaluated view of this Grid, see {@link pipe | `grid.pipe`}.
+	 * @param read Function to transform values from the parent grid
+	 * @param write Function to transform values back to the parent grid
+	 * @returns A new Grid that provides a transformed view of this grid
+	 */
 	map<U>(
 		read: (initial: T, x: number, y: number) => U,
 		write: (local: U, x: number, y: number) => T
@@ -550,6 +511,16 @@ export class Grid<T> {
 		)
 	}
 
+	/**
+	 * Creates a regional view of this Grid.
+	 * 
+	 * Changes to this grid will be reflected in the resulting view, and vice-versa, as well as any overlapping regions of the same parent.
+	 * @param x X coordinate
+	 * @param y Y coordinate
+	 * @param width Region width
+	 * @param height Region height
+	 * @returns Regional view of this Grid.
+	 */
 	region(x: number, y: number, width: number, height: number) {
 		return new Grid(
 			width,
@@ -565,19 +536,47 @@ export class Grid<T> {
 		)
 	}
 
-	static init<T>(width: number, height: number, initCell: () => T) {
-		return new GridBase(width, height, initCell);
+	/**
+	 * Creates a {@link GridBase | `GridBase`}, initialising every value by means of custom function.
+	 * @param width Width of the new Grid
+	 * @param height Height of the new Grid
+	 * @param initCell Callback to initialise cells
+	 * @returns A new GridBase of the specified dimensions.
+	 */
+	static init<T>(width: number, height: number, initCell: (x: number, y: number) => T) {
+		return new GridBase({
+			width,
+			height,
+			get: initCell
+		});
 	}
 
+	/**
+	 * Creates a {@link GridBase | `GridBase`}, using the dimensions of and initialising every value from a 2D source (Grid, Pipe2D, etc).
+	 * @param source A 2D source to provide dimensions and initial values
+	 * @returns A new GridBase, initialised with values read from `source`.
+	 */
 	static from<T>(source: Source2D<T>) {
 		return new GridBase(source);
 	}
 
+	/**
+	 * Creates a {@link GridBase | `GridBase`} with every cell initialised to a specified value.
+	 * @param width Width of the new Grid
+	 * @param height Height of the new Grid
+	 * @param fillValue Value to initialise every cell with
+	 * @returns A new GridBase of the specified dimensions.
+	 */
 	static solid<T>(width: number, height: number, fillValue: T) {
 		return new GridBase(Pipe2D.solid(fillValue, width, height));
 	}
 }
 
+/**
+ * A storage and control Grid layer.
+ * 
+ * Unlike {@link Grid}, which acts as an interface for manipulating a region or two-way transformation of a parent Grid, `GridBase` maintains the underlying data.
+ */
 export class GridBase<T> extends Grid<T> {
 	private data: T[];
 	private eventHandlers: {
@@ -607,17 +606,7 @@ export class GridBase<T> extends Grid<T> {
 		}
 	}
 
-	constructor(source: Source2D<T>)
-	constructor(width: number, height: number, cellInit: GetXYFunc<T>)
-	constructor(widthOrSource: number | Source2D<T>, height?: number, cellInit?: GetXYFunc<T>) {
-		const source = typeof widthOrSource == "object"
-			? widthOrSource
-			: {
-				width: widthOrSource,
-				height: height!,
-				get: cellInit!
-			};
-
+	constructor(source: Source2D<T>) {
 		super(
 			source.width,
 			source.height,
@@ -626,11 +615,11 @@ export class GridBase<T> extends Grid<T> {
 			fn => this.batchUpdate(fn),
 		);
 
-		this.data = Array.from({length: source.width * source.height}, (_, i) => {
-			const x = i % source.width;
-			const y = Math.floor(i / source.width);
-			return source.get(x, y);
-		});
+		const sourcePipe = source instanceof Pipe2D
+			? source
+			: new Pipe2D(source)
+			
+		this.data = sourcePipe.toFlatArrayXY();
 	}
 
 	on<K extends keyof EventMap<T>>(eventName: K, handler: (data: EventMap<T>[K]) => void) {
