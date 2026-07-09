@@ -56,9 +56,9 @@ const world = Grid.solid(100, 100, 0); // 0 = grass
 world.region(30, 30, 20, 20).fill(1); // 1 = water
 
 // add mountains around the lake with a circular mask
-const center = { x: 40, y: 40, radius: 15 };
+const centre = world.cells.get(40, 40);
 const mask = (x: number, y: number) => {
-  const dist = Math.hypot(x - center.x, y - center.y);
+  const dist = Math.hypot(x - centre.x, y - centre.y);
   return dist > 12 && dist < 18; // mountain ring
 };
 world.fill(2, mask); // 2 = mountain
