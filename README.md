@@ -74,12 +74,12 @@ const lakeGrid = Grid.from(lakeRegion);
 
 ## Transformation Layers
 
-`grid.map(read, write)` creates a **view** that reads and writes the parent through the provided transformation functions.
+`grid.map(read, write)` creates a **zero-copy view** that reads and writes the parent through the provided transformation functions.
 
 ```ts
 const spriteMap = world.map(
 	type => type + ".png",
-	sprite => sprite.replace(/\.*/, '')
+	sprite => sprite.replace(/\..*/, '')
 );
 
 world.set(0, 0, "mountain"); // modify the parent
@@ -117,7 +117,7 @@ console.log(spriteMap.get(0, 0)); // now "forest.png";
 
 // navigate by offset
 const adjacentCell = topLeft.look(1, 0);
-console.log(adjacentCell.x, adjacentCell.y); // 1, 0
+console.log(adjacentCell?.x, adjacentCell?.y); // 1, 0
 ```
 
 Cells provide methods for locational utilities such as pathfinding and visibility mapping.
@@ -185,3 +185,14 @@ Unlike visibility maps, which are lazily evaluated according to the supplied `is
 Although the Grid factory methods (`Grid.solid()`, `Grid.from()`, `Grid.init()`) return a `GridBase<T>`, the mental model is that we're simply working with `Grid`s, therefore those factory methods live on `Grid`. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
 
 You can perform batched updates, holding off the 'change' event until the batch process concludes, with `grid.batchUpdate(callback)`.
+
+## Save and load
+
+Pipe2D makes it easy to save and restore grid data:
+
+```ts
+const saved = world.pipe.toFlatArrayXY(); // ["mountain", "forest", "grass", ...]
+
+const restoredPipe = Pipe2D.fromFlatArrayXY(saved);
+const restored = Grid.from(restoredPipe);
+```
