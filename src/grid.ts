@@ -474,7 +474,7 @@ export class Grid<T> {
 
 	/**
 	 * Perform a callback on every value in this Grid
-	 * @param callback Callback to run for every cell
+	 * @param callback Callback to run for every cell's value
 	 */
 	forEach(callback: (value: T, x: number, y: number) => void): void {
 		for (let y = 0; y < this.height; y++) {

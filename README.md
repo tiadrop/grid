@@ -176,7 +176,7 @@ const pathToCentre = pathMap.get(50, 50);
 const pathToCorner = pathMap.get(99, 99);
 ```
 
-Unlike visibility maps, which are lazily evaluated according to the supplied `isWall` function *when the map is queried*, path maps necessarily reflect the underlying data *when the map is created*. This distinction is hinted through the `create*` vs `get*` naming.
+Unlike visibility maps, which are lazily evaluated according to the supplied `isClear` function *when the map is queried* (but can be easily cached with `visMap.withCache()`), path maps use a relatively expensive traversal map that's created *when the map is created*. This distinction is hinted through the `create*` vs `get*` naming.
 
 ## The storage layer
 
