@@ -11,16 +11,14 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "test": "npx jest"
+    "test": "npx vitest run"
   },
   "files": [
     "lib/"
   ],
   "devDependencies": {
-    "@swc/jest": "^0.2.39",
-    "@types/jest": "^30.0.0",
-    "jest": "^30.4.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@xtia/pipe2d": "^2.1.0"
