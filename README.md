@@ -1,5 +1,7 @@
 # `Grid`
 
+**Alpha**: Some API details may change
+
 ## Summary
 
 A mutable 2D grid with efficient region views, spatial operations, and seamless interoperability with [Pipe2D](https://github.com/tiadrop/pipe2d). Store, edit, and transform 2D data with an ergonomic API designed for practical use.
