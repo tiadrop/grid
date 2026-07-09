@@ -94,8 +94,10 @@ For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadro
 // create a one-way sprite map
 const spriteMap = world.pipe.map(t => t + ".png");
 
-// get a list of cells with mountains
-const mountainCells = world.cells.toFlatArrayXY().filter(c => c.value === "mountain");
+// get a list of locations of cells with mountains
+const mountainCells = world.cells.toFlatArrayXY()
+	.filter(cell => cell.value === "mountain")
+	.map(cell => [cell.x, cell.y]);
 
 ```
 
