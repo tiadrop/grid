@@ -424,11 +424,16 @@ export class Grid<T> {
 	 * @param value Value to store
 	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
 	 */
-	fill(value: T, mask?: Source2D<boolean>) {
+	fill(value: T, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
+		const maskSource = typeof mask == "function" ? {
+			width: this.width,
+			height: this.height,
+			get: mask
+		} : mask;
 		this.batchUpdate(() => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					if (mask && !mask.get(x, y)) continue;
+					if (maskSource && !maskSource.get(x, y)) continue;
 					this.trySet(x, y, value);
 				}
 			}
@@ -442,14 +447,19 @@ export class Grid<T> {
 	 * @param source Source to copy values from
 	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
 	 */
-	paste(x: number, y: number, source: Source2D<T>, mask?: Source2D<boolean>) {
+	paste(x: number, y: number, source: Source2D<T>, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
+		const maskSource = typeof mask == "function" ? {
+			width: this.width,
+			height: this.height,
+			get: mask
+		} : mask;
 		const cachedSource = new GridBase(source);
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
 					const tx = ox + x;
 					const ty = oy + y;
-					if (mask && !mask.get(tx, ty)) continue;
+					if (maskSource && !maskSource.get(tx, ty)) continue;
 					this.trySet(tx, ty, cachedSource.get(ox, oy));
 				}
 			}
