@@ -578,6 +578,35 @@ export class Grid<T> {
 	static solid<T>(width: number, height: number, fillValue: T) {
 		return new GridBase(Pipe2D.solid(fillValue, width, height));
 	}
+
+	/**
+	 * Creates a **proxy Grid** to interact with any existing read/write 2D structure with Grid's API
+	 * @param width Width of the grid
+	 * @param height Height of the grid
+	 * @param get Callback that gets a value from the parent structure
+	 * @param set Callback that sets a value on the parent structure
+	 * @param batch Optional function that instructs the parent to perform an operation in batching mode, if supported
+	 * @returns A Grid view of the parent
+	 * @example
+	 * ```ts
+	 * const array2D = [[1, 2], [3, 4]];
+	 * const grid = Grid.wrap(
+	 *   2, 2,
+	 *   (x, y) => array2D[y][x],
+	 *   (x, y, value) => array2D[y][x] = value
+	 * );
+	 * grid.set(0, 0, 99); // array2D[0][0] is now 99
+	 * ```
+	 */
+	static wrap<T>(
+		width: number,
+		height: number,
+		get: (x: number, y: number) => T,
+		set: (x: number, y: number, value: T) => void,
+		batch: (callback: () => void) => void = cb => cb()
+	) {
+		return new Grid(width, height, get, set, batch);
+	}
 }
 
 /**

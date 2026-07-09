@@ -46,6 +46,34 @@ const source = imagePipe
 const grid = Grid.from(source);
 ```
 
+### Wrapping existing structures
+
+Use Grid's interface over any read/write 2D structure:
+
+```ts
+const gameMap = [
+	[0, 1, -1, 2],
+	[1, 0, 1, 0],
+	[-1, 1, 0, 2],
+	[2, 0, 2, -1]
+];
+
+// create a *live view* Grid over gameMap
+const grid = Grid.wrap(
+	gameMap[0].length, // width
+	gameMap.length, // height
+	(x, y) => gameMap[y][x], // get
+	(x, y, value) => gameMap[y][x] = value // set
+);
+
+// reading the grid = reading the source
+gameMap[0][0] = 50;
+console.log(grid.get(0, 0)); // 50
+// writing to the grid = writing to the source
+grid.set(3, 3, 100);
+console.log(gameMap[3][3]); // 100
+```
+
 ## Regions
 
 Use `grid.region(x, y, w, h)` to define a subgrid. The subgrid is **zero-copy view** into the parent; changes to the subgrid affect the parent and vice-versa.
