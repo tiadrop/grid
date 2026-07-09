@@ -111,6 +111,17 @@ Cells provide methods for locational utilities such as pathfinding and visibilit
 
 Cells are unique to, owned by, and coordinated relative to the view that provided them. Their pathfinding and visibility mapping features are unaware of space outside of their view's bounds.
 
+### (Everybody needs good) Neighbours
+
+`cell.getNeighbours(includeDiagonals?)` returns an array of Cells:
+
+```ts
+// derive a display number for clicked cells in Minesweeper
+const numOfAdjacentMines = clickedCell.getNeighbours(true)
+	.filter(cell => cell.value.isMine)
+	.length;
+```
+
 ### Path finding
 ```ts
 const costs = [1, Infinity, Infinity, 2]; // grass=1, water/mountain=impassable, forest=2
