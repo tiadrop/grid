@@ -9,7 +9,12 @@
     },
     "./lib/*": null
   },
-  "keywords": ["grid", "game-dev", "pathfinding", "cellular-automata"],
+  "keywords": [
+    "grid",
+    "game-dev",
+    "pathfinding",
+    "cellular-automata"
+  ],
   "scripts": {
     "build": "npx tsc",
     "test": "npx vitest run"
@@ -18,10 +23,11 @@
     "lib/"
   ],
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@xtia/pipe2d": "^2.1.0"
+    "@xtia/pipe2d": "^2.2.1"
   }
 }
