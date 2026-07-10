@@ -130,6 +130,15 @@ const mountainCells = world.cells.toFlatArrayXY()
 	.filter(cell => cell.value === "mountain")
 	.map(cell => [cell.x, cell.y]);
 
+// or get a live, renderable minimap
+const colourMap = new Map(Object.entries({
+	grass: "#0f0",
+	water: "#00f",
+	forest: "#080",
+	mountain: "#a70"
+}));
+const minimap = world.pipe.map(colourMap).map(parseRGBA);
+
 ```
 
 ## Cell interface
@@ -190,7 +199,7 @@ const visibility = start.createVisibilityMap(
 
 // any 2d source, including visibility maps, can be used as a mask for paste/fill operations
 // paste(source: Source2D<T>, mask?: Source2D<boolean>)
-screenGrid.paste(spriteMap, visibility);
+screenGrid.paste(spriteMap, 0, 0, visibility);
 ```
 
 ### Reusing path data
