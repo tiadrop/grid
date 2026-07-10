@@ -18,7 +18,7 @@ type PathFindOptions<T> = {
 	maxCost?: number;
 	allowDiagonal?: boolean;
 	onVisit?: (info: {cell: Cell<T>, cost: number}) => void;
-	shortcutMap?: Source2D<Cell<T>[] | undefined>;
+	shortcutMap?: Source2D<Cell<T>[] | undefined> | GetXYFunc<Cell<T>[]>;
 }
 
 type CostMapOptions<T> = PathFindOptions<T> & {
@@ -126,7 +126,7 @@ export class Cell<T> {
 	 */
 	findPath(
 		target: LocationSpec<T>,
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: PathFindOptions<T> = {}
 	): Cell<T>[] | null {
 		const pathMap = this.calculateCosts(getCost, {
@@ -145,7 +145,7 @@ export class Cell<T> {
 	 * @returns Map containing optimal paths to all reachable cells. Unreachable cells are mapped as `null`.
 	 */
 	getPathMap(
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: PathFindOptions<T> = {}
 	) {
 		return this.calculateCosts(
@@ -162,23 +162,23 @@ export class Cell<T> {
 	 * @returns Map containing costs for all reachable cells. Unreachable cells are costed `Infinity`.
 	 */
 	getCostMap(
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: CostMapOptions<T> = {}
 	) {
 		return this.calculateCosts(getCost, options)
 	}
 
 	private calculateCosts(
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: CostMapOptions<T>,
 	): Pipe2D<number>
 	private calculateCosts(
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: CostMapOptions<T>,
 		asPathMap: true,
 	): Pipe2D<Cell<T>[] | null>
 	private calculateCosts(
-		getCost: CostFunc<T>,
+		getCost: CostFunc<T> | Map<T, number>,
 		options: CostMapOptions<T>,
 		asPathMap: boolean = false
 	): Pipe2D<number> | Pipe2D<Cell<T>[] | null> {
@@ -188,6 +188,10 @@ export class Cell<T> {
 		const pathInfo = asPathMap
 			? new Map<Cell<T>, Cell<T>>()
 			: null;
+
+		const getCostFn = getCost instanceof Map
+			? (cell: Cell<T>) => getCost.get(cell.value) ?? Infinity
+			: getCost;
 		
 		costs.set(this, 0);
 
@@ -198,10 +202,10 @@ export class Cell<T> {
 		// calculate costs with Dijkstra
 		while (queue.length > 0) {
 			const current = queue.take();
-			options.onVisit?.({cell: current, cost: costs.get(current)!});
 			
 			if (visited.has(current)) continue;
 			visited.add(current);
+			options.onVisit?.({cell: current, cost: costs.get(current)!});
 			
 			if (stopAtCell && current === stopAtCell) {
 				break;
@@ -215,18 +219,23 @@ export class Cell<T> {
 					: TraversalType.diagonal,
 				cell
 			}));
-			if (options.shortcutMap) {
-				const shortcuts = options.shortcutMap.get(current.x, current.y)?.map(cell => ({
+
+			const shortcutCells = typeof options.shortcutMap == "function"
+				? options.shortcutMap(current.x, current.y)
+				: options.shortcutMap?.get(current.x, current.y);
+
+			if (shortcutCells) {
+				const shortcuts = shortcutCells.map(cell => ({
 					traversalType: TraversalType.shortcut,
 					cell
 				}));
-				if (shortcuts) neighbours.push(...shortcuts);
+				neighbours.push(...shortcuts);
 			}
 			
 			neighbours.forEach(n => {
 				if (visited.has(n.cell)) return;
 				
-				const moveCost = getCost(n.cell, {
+				const moveCost = getCostFn(n.cell, {
 					traversalType: n.traversalType,
 					from: current,
 				});
@@ -243,6 +252,7 @@ export class Cell<T> {
 			});
 		}
 
+		// construct path map, if requested
 		if (pathInfo) {
 			// only cache directly queried paths
 			// but if a cached path is encountered during a resolution, reuse it
@@ -270,6 +280,7 @@ export class Cell<T> {
 			});
 		}
 
+		// otherwise return the cost map
 		return this.gridView.cells.map(costs, () => Infinity)
 			.strict();
 	}
