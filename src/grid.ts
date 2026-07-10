@@ -708,6 +708,9 @@ export class GridBase<T> extends Grid<T> {
 		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
             throw new Error(`Coordinates out of bounds: (${x}, ${y})`);
         }
+		if (!Number.isInteger(x) || !Number.isInteger(y)) {
+			throw new Error(`Coordinates must be integer; got (${x}, ${y})`);
+		}
 		return y * this.width + x;
 	}
 
