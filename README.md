@@ -131,13 +131,19 @@ const mountainCells = world.cells.toFlatArrayXY()
 	.map(cell => [cell.x, cell.y]);
 
 // or get a live, renderable minimap
+import { C } from "@xtia/rgba";
+
 const colourMap = new Map(Object.entries({
-	grass: "#0f0",
-	water: "#00f",
-	forest: "#080",
-	mountain: "#a70"
+	grass: C.x0f0,
+	water: C.x00f,
+	forest: C.x080,
+	mountain: C.xa70
 }));
-const minimap = world.pipe.map(colourMap).map(parseRGBA);
+const minimap = world.pipe
+	.map(colourMap)
+	.floorCoordinates()
+	.crop(viewX, viewY, vw, vh)
+	.stretch(canvas.width, canvas.height);
 
 ```
 
