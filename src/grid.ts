@@ -214,7 +214,7 @@ export class Cell<T> {
 			const currentCost = costs.get(current)!;
 			
 			const neighbours = current.getNeighbours(options.allowDiagonal).map(cell => ({
-				traversalType: cell.x == current.x && cell.y == current.y
+				traversalType: cell.x == current.x || cell.y == current.y
 					? TraversalType.cardinal
 					: TraversalType.diagonal,
 				cell
