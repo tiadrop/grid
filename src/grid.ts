@@ -22,13 +22,15 @@ type PathFindOptions<T> = {
 }
 
 type CostMapOptions<T> = PathFindOptions<T> & {
-	stopAt?: [number, number] | Cell<T>;
+	stopAt?: LocationSpec<T>;
 }
 
 type VisibilityOptions = {
 	maxDistance?: number;
 	boundariesVisible?: boolean;
 }
+
+type LocationSpec<T> = Cell<T> | [number, number];
 
 export enum TraversalType {
 	cardinal,
@@ -39,7 +41,7 @@ export enum TraversalType {
 type CostFunc<T> = (cell: Cell<T>, context: {
 	traversalType: TraversalType;
 	from: Cell<T>;
-}) => number
+}) => number;
 
 export class Cell<T> {
 	constructor(
@@ -57,6 +59,32 @@ export class Cell<T> {
 
 	set value(v) {
 		this.gridView.set(this.x, this.y, v);
+	}
+
+	/**
+	 * Get a Cell from a location, specified as Cell or [x,y], throwing if given a foreign Cell
+	 * @param location 
+	 * @returns 
+	 */
+	private getSiblingCell(location: LocationSpec<T>) {
+		if (Array.isArray(location)) return this.gridView.cells.get(...location);
+		if (location.gridView !== this.gridView) {
+			throw new Error("Target cell belongs to a different Grid");
+		}
+		return location;
+	}
+
+	/**
+	 * Get [x,y] from a location, specified as Cell or [x,y], throwing if given a foreign Cell
+	 * @param location 
+	 * @returns 
+	 */
+	private getSiblingXY(location: LocationSpec<T>): [number, number] {
+		if (Array.isArray(location)) return location;
+		if (location.gridView !== this.gridView) {
+			throw new Error("Target cell belongs to a different Grid");
+		}
+		return [location.x, location.y];
 	}
 
 	/**
@@ -90,28 +118,24 @@ export class Cell<T> {
 	}
 
 	/**
-	 * Computes the optimal path from this Cell to another, based on a cell costing predicate.
+	 * Computes an optimal path from this Cell to another, based on a cell costing predicate.
 	 * @param target Destination cell or [x, number] coordinates
 	 * @param getCost Function that returns the movement cost for traversing a cell. Return `Infinity` for impassable cells.
 	 * @param options Configuration for pathfinding behavior (max cost, diagonal movement, etc).
 	 * @returns Optimal path as array of Cells, or null if no path exists.
 	 */
 	findPath(
-		target: Cell<T> | [number, number],
+		target: LocationSpec<T>,
 		getCost: CostFunc<T>,
 		options: PathFindOptions<T> = {}
 	): Cell<T>[] | null {
-		const targetXY = Array.isArray(target)
-			? target
-			: [target.x, target.y] as [number, number];
-
 		const pathMap = this.calculateCosts(getCost, {
-			stopAt: targetXY,
+			stopAt: target,
 			allowDiagonal: options.allowDiagonal,
 			maxCost: options.maxCost,
 		}, true);
 
-		return pathMap?.get(...targetXY);
+		return pathMap?.get(...this.getSiblingXY(target));
 	}
 
 	/**
@@ -169,14 +193,9 @@ export class Cell<T> {
 
 		const queue = new OrderedQueue<Cell<T>>(cell => costs.get(cell) ?? Infinity, this);
 
-		const targetCell = Array.isArray(options.stopAt)
-			? this.gridView.cells.get(options.stopAt[0], options.stopAt[1])
-			: options.stopAt;
+		const stopAtCell = options.stopAt && this.getSiblingCell(options.stopAt);
 
-		if (targetCell && targetCell.gridView !== this.gridView) {
-			throw new Error("Target cell belongs to a different Grid");
-		}
-		
+		// calculate costs with Dijkstra
 		while (queue.length > 0) {
 			const current = queue.take();
 			options.onVisit?.({cell: current, cost: costs.get(current)!});
@@ -184,14 +203,16 @@ export class Cell<T> {
 			if (visited.has(current)) continue;
 			visited.add(current);
 			
-			if (targetCell && current === targetCell) {
+			if (stopAtCell && current === stopAtCell) {
 				break;
 			}
 			
 			const currentCost = costs.get(current)!;
 			
 			const neighbours = current.getNeighbours(options.allowDiagonal).map(cell => ({
-				traversalType: cell.x == current.x && cell.y == current.y ? TraversalType.cardinal : TraversalType.diagonal,
+				traversalType: cell.x == current.x && cell.y == current.y
+					? TraversalType.cardinal
+					: TraversalType.diagonal,
 				cell
 			}));
 			if (options.shortcutMap) {
@@ -253,10 +274,12 @@ export class Cell<T> {
 			.strict();
 	}
 
-	*getLineTo(target: { x: number, y: number } | [number, number]): IterableIterator<Cell<T>> {
-		const [targetX, targetY] = Array.isArray(target)
-			? target
-			: [target.x, target.y];
+	getLineTo(target: LocationSpec<T>): IterableIterator<Cell<T>> 
+	getLineTo(x: number, y: number): IterableIterator<Cell<T>>
+	*getLineTo(targetOrX: LocationSpec<T> | number, _targetY?: number): IterableIterator<Cell<T>>{
+		const [targetX, targetY] = typeof targetOrX == "number"
+			? [targetOrX, _targetY!]
+			: this.getSiblingXY(targetOrX);
 		
 		if (this.x === targetX && this.y === targetY) {
 			yield this;
@@ -325,7 +348,7 @@ export class Cell<T> {
 					}
 				}
 				
-				for (const cell of this.getLineTo({ x, y })) {
+				for (const cell of this.getLineTo([x, y])) {
 					if (isClear(cell)) continue;
 					return cell.x === x && cell.y === y
 						? boundariesVisible
