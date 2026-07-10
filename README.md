@@ -48,7 +48,7 @@ const grid = Grid.from(source);
 
 ### Wrapping existing structures
 
-Use Grid's interface over any read/write 2D structure:
+Use Grid's interface and features over any read/write 2D structure:
 
 ```ts
 const gameMap = [
