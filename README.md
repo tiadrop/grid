@@ -11,8 +11,8 @@ A mutable 2D grid with efficient region views, spatial operations, and seamless 
 - **Mutable 2D storage** with type safety
 - **Zero-copy region views** - edit or provide subgrids and transformation layers without copying
 - **Spatial operations** - fill, paste, flood fill, pathfinding
-- **Pipe2D integration** - materialise pipes, get pipe views
-- **Consistent API** - for grids and regions
+- **First-class Pipe2D interoperability** – use grids as sources for pipes, or pipes as sources for grids
+- **Consistent API** - for grids, regions, and your existing 2D structures
 - **Mask support** - apply operations to arbitrary shapes
 
 ## Example
@@ -134,7 +134,7 @@ const mountainCells = world.cells.toFlatArrayXY()
 
 ## Cell interface
 
-`grid.cells` provides a Pipe2D, for convenient transformation, of live-view interfaces relating to positions in the grid.
+`grid.cells` provides a Pipe2D, for convenient transformation, of Cell objects, each representing a live view into a grid location.
 
 ```ts
 const topLeft = world.cells.get(0, 0);
@@ -210,9 +210,9 @@ Unlike visibility maps, which are lazily evaluated according to the supplied `is
 
 `Grid` itself is an interface for reading and writing 2D data. `GridBase` - a subclass of `Grid` - maintains the actual storage of such data.
 
-Although the Grid factory methods (`Grid.solid()`, `Grid.from()`, `Grid.init()`) return a `GridBase<T>`, the mental model is that we're simply working with `Grid`s, therefore those factory methods live on `Grid`. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
+Although the Grid factory methods (`Grid.solid<T>()`, `Grid.from<T>()`, `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
 
-You can perform batched updates, holding off the 'change' event until the batch process concludes, with `grid.batchUpdate(callback)`.
+We can perform batched updates, suppressing the 'change' event until a process concludes, with `grid.batchUpdate(callback)`.
 
 ## Save and load
 
