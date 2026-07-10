@@ -474,12 +474,12 @@ export class Grid<T> {
 
 	/**
 	 * Copies values from a 2D source (Grid, Pipe2D, etc) to this Grid.
-	 * @param x X coordinate
-	 * @param y Y coordinate
 	 * @param source Source to copy values from
+	 * @param x Destination X coordinate
+	 * @param y Destination Y coordinate
 	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
 	 */
-	paste(x: number, y: number, source: Source2D<T>, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
+	paste(source: Source2D<T>, x: number = 0, y: number = 0, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
 		const maskSource = typeof mask == "function" ? {
 			width: this.width,
 			height: this.height,
