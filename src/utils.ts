@@ -6,22 +6,6 @@ export type Source2D<T> = {
 	get: GetXYFunc<T>;
 }
 
-// @xtia/mezr compatibility
-export type Angle = {
-	asDegrees: number;
-} | {
-	asRadians: number;
-} | {
-	asTurns: number;
-}
-
-export function angleToRadians(angle: Angle) {
-    if ("asRadians" in angle) return angle.asRadians;
-    if ("asDegrees" in angle) return angle.asDegrees * (180 / Math.PI);
-    if ("asTurns" in angle) return angle.asTurns * Math.PI * 2;
-    throw new Error("Invalid angle");
-}
-
 export class OrderedQueue<T> {
 	private queue: {value: T, priority: number}[] = [];
 	constructor(

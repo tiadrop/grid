@@ -1,5 +1,5 @@
 import { Pipe2D } from "@xtia/pipe2d";
-import { Angle, angleToRadians, GetXYFunc, OrderedQueue, Source2D } from "./utils.js";
+import { GetXYFunc, OrderedQueue, Source2D } from "./utils.js";
 
 type ChangeEvent<T> = {
 	changedCells: Set<Cell<T>>;
