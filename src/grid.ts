@@ -18,7 +18,7 @@ type PathFindOptions<T> = {
 	maxCost?: number;
 	allowDiagonal?: boolean;
 	onVisit?: (info: {cell: Cell<T>, cost: number}) => void;
-	shortcutMap?: Source2D<Cell<T>[] | undefined> | GetXYFunc<Cell<T>[]>;
+	shortcutMap?: Source2D<LocationSpec<T>[] | undefined> | GetXYFunc<LocationSpec<T>[] | undefined>;
 }
 
 type CostMapOptions<T> = PathFindOptions<T> & {
@@ -130,9 +130,8 @@ export class Cell<T> {
 		options: PathFindOptions<T> = {}
 	): Cell<T>[] | null {
 		const pathMap = this.calculateCosts(getCost, {
+			...options,
 			stopAt: target,
-			allowDiagonal: options.allowDiagonal,
-			maxCost: options.maxCost,
 		}, true);
 
 		return pathMap?.get(...this.getSiblingXY(target));
@@ -225,7 +224,7 @@ export class Cell<T> {
 				: options.shortcutMap?.get(current.x, current.y);
 
 			if (shortcutCells) {
-				const shortcuts = shortcutCells.map(cell => ({
+				const shortcuts = shortcutCells.map(loc => this.getSiblingCell(loc)).map(cell => ({
 					traversalType: TraversalType.shortcut,
 					cell
 				}));
@@ -343,7 +342,7 @@ export class Cell<T> {
 		isClear: (cell: Cell<T>) => boolean,
 		options: VisibilityOptions = {},
 	): Pipe2D<boolean> {
-		const maxDistance = options.maxDistance ?? Infinity;
+		const maxDistance = options.maxDistance;
 		const boundariesVisible = options.boundariesVisible ?? true;
 		return new Pipe2D<boolean>(
 			this.gridView.width,
@@ -353,7 +352,7 @@ export class Cell<T> {
 					return x === this.x && y === this.y ? boundariesVisible : false;
 				}
 
-				if (maxDistance < Infinity) {
+				if (maxDistance !== undefined) {
 					if (getDistance(this, { x, y }) > maxDistance) {
 						return false;
 					}
