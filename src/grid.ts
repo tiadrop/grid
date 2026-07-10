@@ -446,7 +446,14 @@ export class Grid<T> {
 	 * @returns `true` if the write was successful (in-bounds), otherwise `false`.
 	 */
 	trySet(x: number, y: number, value: T): boolean {
-    	if (x < 0 || x >= this.width || y < 0 || y >= this.height) return false;
+    	if (
+			x < 0
+			|| x >= this.width
+			|| y < 0
+			|| y >= this.height
+			|| !Number.isInteger(x)
+			|| !Number.isInteger(y)
+		) return false;
     	this.set(x, y, value);
     	return true;
 	}
@@ -571,7 +578,6 @@ export class Grid<T> {
 				return this.parentGet(tx + x, ty + y)
 			},
 			(tx, ty, value) => {
-				if (tx < 0 || ty < 0 || tx >= width || ty >= height) throw new Error("Out of bounds");
 				this.parentSet(tx + x, ty + y, value)
 			},
 			fn => this.batch(fn),
@@ -717,11 +723,11 @@ export class GridBase<T> extends Grid<T> {
 	private _set(x: number, y: number, value: T) {
 		const idx = this.xyToIndex(x, y);
 		if (this.data[idx] === value) return;
+		this.data[this.xyToIndex(x, y)] = value;
 		if (this.batchState) {
 			this.batchState.changedCells.add(this.cells.get(x, y));
 			return;
 		}
-		this.data[this.xyToIndex(x, y)] = value;
 		if (this.eventHandlers.change) {
 			this.triggerChange(new Set([this.cells.get(x, y)]));
 		}
