@@ -91,7 +91,7 @@ const mask = (x: number, y: number) => {
   const dist = Math.hypot(x - centre.x, y - centre.y);
   return dist > 12 && dist < 18; // mountain ring
 };
-world.fill("mountain", mask);
+world.writeMask(mask).fill("mountain");
 
 // get a view of just the interesting area
 const lakeRegion = world.region(25, 25, 30, 30);
@@ -203,9 +203,8 @@ const visibility = start.createVisibilityMap(
 	cell => cell.value === "grass" // anything except grass blocks vision
 );
 
-// any 2d source, including visibility maps, can be used as a mask for paste/fill operations
-// paste(source: Source2D<T>, mask?: Source2D<boolean>)
-screenGrid.paste(spriteMap, 0, 0, visibility);
+// writeMask() creates a live view that only allows writes at positions allowed by the mask Source2D/function
+screenGrid.writeMask(visibility).paste(spriteMap, 0, 0);
 ```
 
 ### Reusing path data
@@ -234,8 +233,17 @@ We can perform batched updates, suppressing the 'change' event until a process c
 Pipe2D makes it easy to save and restore grid data:
 
 ```ts
-const saved = world.pipe.toFlatArrayXY(); // ["mountain", "forest", "grass", ...]
+const snapshot = world.pipe.stash();
 
-const restoredPipe = Pipe2D.fromFlatArrayXY(saved);
-const restored = Grid.from(restoredPipe);
+const restored = Grid.from(snapshot);
+// or paste it to an existing grid
+world.paste(snapshot);
+```
+
+For persistent storage or transmission, Pipe2D can export as array:
+
+```ts
+const saved = snapshot.toFlatArrayXY(); // ["mountain", "forest", "grass", ...]
+
+const restoredSnapshot = Pipe2D.fromFlatArrayXY(saved);
 ```

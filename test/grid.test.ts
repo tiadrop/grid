@@ -196,7 +196,6 @@ describe("Grid", () => {
 			0,2,2,1,
 			1,2,2,3
 		], 4, 4));
-		const baseCopy = Grid.from(base);
 		const brush = Grid.from(Pipe2D.fromFlatArrayXY([
 			5,5,5,
 			6,6,6,
@@ -204,15 +203,31 @@ describe("Grid", () => {
 		], 3, 3));
 		base.paste(brush, 1, 1);
 		expect(base.pipe.toFlatArrayXY().join("")).toBe("0011055506661777");
-		const mask = Grid.from(Pipe2D.fromFlatArrayXY([
+	});
+
+	test("Write-masking", () => {
+		const base = Grid.from(Pipe2D.fromFlatArrayXY([
+			0,0,1,1,
+			0,1,1,1,
+			0,2,2,1,
+			1,2,2,3
+		], 4, 4));
+		const brush = Grid.from(Pipe2D.fromFlatArrayXY([
+			5,5,5,
+			6,6,6,
+			7,7,7
+		], 3, 3));
+		const mask = Pipe2D.fromFlatArrayXY([
 			1,1,0,0,
 			1,1,0,0,
 			0,0,0,0,
 			1,1,1,0
-		], 4, 4).map(n => n == 1));
-		baseCopy.paste(brush, 1, 1, mask);
-		expect(baseCopy.pipe.toFlatArrayXY().join("")).toBe("0011051102211773")
-	})
+		], 4, 4).map(n => n == 1);
+		base.writeMask(mask).paste(brush, 1, 1);
+		expect(base.pipe.toFlatArrayXY().join("")).toBe("0011051102211773");
+		base.writeMask(mask.map(w => !w)).fill(9);
+		expect(base.pipe.toFlatArrayXY().join("")).toBe("0099059999991779");
+	});
 
 })
 

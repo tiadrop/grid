@@ -462,16 +462,10 @@ export class Grid<T> {
 	 * @param value Value to store
 	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
 	 */
-	fill(value: T, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
-		const maskSource = typeof mask == "function" ? {
-			width: this.width,
-			height: this.height,
-			get: mask
-		} : mask;
+	fill(value: T) {
 		this.batchUpdate(() => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					if (maskSource && !maskSource.get(x, y)) continue;
 					this.trySet(x, y, value);
 				}
 			}
@@ -483,25 +477,43 @@ export class Grid<T> {
 	 * @param source Source to copy values from
 	 * @param x Destination X coordinate
 	 * @param y Destination Y coordinate
-	 * @param mask Optional 2D boolean source (Grid, Pipe2D, etc) to specify which cells should be modified. Only cells at locations (relative to the target grid) where the mask provides `true` will be changed.
 	 */
-	paste(source: Source2D<T>, x: number = 0, y: number = 0, mask?: Source2D<boolean> | GetXYFunc<boolean>) {
-		const maskSource = typeof mask == "function" ? {
-			width: this.width,
-			height: this.height,
-			get: mask
-		} : mask;
+	paste(source: Source2D<T>, x: number = 0, y: number = 0) {
 		const cachedSource = new GridBase(source);
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
-					const tx = ox + x;
-					const ty = oy + y;
-					if (maskSource && !maskSource.get(tx, ty)) continue;
-					this.trySet(tx, ty, cachedSource.get(ox, oy));
+					this.trySet(
+						ox + x,
+						oy + y,
+						cachedSource.get(ox, oy)
+					);
 				}
 			}
 		});
+	}
+
+	/**
+	 * Creates a view of this grid that only writes to allowed locations according to a mask source/function.
+	 * @param mask A Source2D or a function that provides `true` to allow writing, `false` to suppress writing, at a given location
+	 * @returns A write-masked grid
+	 */
+	writeMask(mask: Source2D<boolean> | GetXYFunc<boolean>) {
+		const getMask = typeof mask == "function"
+			? mask
+			: (x: number, y: number) => mask.get(x, y);
+		return new Grid(
+			this.width,
+			this.height,
+			this.parentGet,
+			(x, y, v) => {
+				const writable = getMask(x, y);
+				if (writable) {
+					this.set(x, y, v);
+				}
+			},
+			cb => this.batch(cb),
+		)
 	}
 
 	*[Symbol.iterator](): IterableIterator<{x: number, y: number, value: T}> {
