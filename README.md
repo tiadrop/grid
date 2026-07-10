@@ -1,6 +1,6 @@
 # `Grid`
 
-**Alpha**: Some API details may change
+**Alpha**: Pre-0.1.0 API details may change
 
 ## Summary
 
