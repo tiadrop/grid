@@ -8,14 +8,10 @@ export type Source2D<T> = {
 
 export class OrderedQueue<T> {
 	private queue: {value: T, priority: number}[] = [];
-	constructor(
-		private getCost: (value: T) => number,
-		...values: T[]
-	) {
-		values.forEach(v => this.add(v));
+	constructor(...items: [T, number][]) {
+		items.forEach(v => this.add(...v));
 	}
-	add(value: T) {
-		const priority = this.getCost(value);
+	add(value: T, priority: number) {
 		const item = {value, priority};
 		
 		let low = 0, high = this.queue.length;

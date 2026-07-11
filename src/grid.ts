@@ -194,7 +194,7 @@ export class Cell<T> {
 		
 		costs.set(this, 0);
 
-		const queue = new OrderedQueue<Cell<T>>(cell => costs.get(cell) ?? Infinity, this);
+		const queue = new OrderedQueue<Cell<T>>([this, 0]);
 
 		const stopAtCell = options.stopAt && this.getSiblingCell(options.stopAt);
 
@@ -246,7 +246,7 @@ export class Cell<T> {
 				if (newCost < oldCost && newCost <= maxCost) {
 					costs.set(n.cell, newCost);
 					pathInfo?.set(n.cell, current);
-					queue.add(n.cell);
+					queue.add(n.cell, newCost);
 				}
 			});
 		}
