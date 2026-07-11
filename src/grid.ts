@@ -735,7 +735,7 @@ export class GridBase<T> extends Grid<T> {
 		if (this.batchState.level == 0) {
 			const changed = this.batchState.changedCells;
 			this.batchState = null;
-			this.triggerChange(changed);
+			if (changed.size > 0) this.triggerChange(changed);
 		}
 	}
 
