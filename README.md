@@ -1,6 +1,6 @@
 # `Grid`
 
-**Alpha**: Pre-0.1.0 API details may change
+**Beta**: Stable core, open to refinement pre-1.0.0
 
 ## Summary
 
