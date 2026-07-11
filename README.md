@@ -179,6 +179,9 @@ const numOfAdjacentMines = clickedCell.getNeighbours(true)
 ```
 
 ### Path finding
+
+`findPath()` computes an optimal path from a cell to another location in the grid, accounting for cell/traversal costs according to a user-provided predicate or `Map<T, number>`.
+
 ```ts
 const costs = {
 	grass: 1,
@@ -189,6 +192,7 @@ const costs = {
 
 const start = world.cells.get(5, 5);
 const destination = world.cells.get(90, 90);
+
 const path = start.findPath(
 	destination, // or simply [90, 90]
 	(cell) => costs[cell.value]
@@ -197,13 +201,14 @@ const path = start.findPath(
 
 ### Visibility mapping
 
+`createVisibilityMap()` returns a `Pipe2D<boolean>` that maps which cells are 'visible' from the starting point, according to a user-provided predicate to determine which cells block vision.
+
 ```ts
 // createVisibilityMap(isClear);
 const visibility = start.createVisibilityMap(
 	cell => cell.value === "grass" // anything except grass blocks vision
 );
 
-// writeMask() creates a live view that only allows writes at positions allowed by the mask Source2D/function
 screenGrid.writeMask(visibility).paste(spriteMap, 0, 0);
 ```
 
