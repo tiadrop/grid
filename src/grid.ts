@@ -480,7 +480,7 @@ export class Grid<T> {
 		this.batchUpdate(() => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					this.trySet(x, y, value);
+					this.set(x, y, value);
 				}
 			}
 		});
@@ -497,11 +497,9 @@ export class Grid<T> {
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
-					this.trySet(
-						ox + x,
-						oy + y,
-						cachedSource.get(ox, oy)
-					);
+					const tx = ox + x, ty = oy + y;
+					if (tx < 0 || tx >= this.width || ty < 0 || ty >= this.height) continue;
+					this.set(tx, ty, cachedSource.get(ox, oy));
 				}
 			}
 		});
