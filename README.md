@@ -22,7 +22,7 @@ npm i @xtia/grid
 ```
 
 ```ts
-import { Grid } from "@xtia/grid"; // ~4.8kb gzipped
+import { Grid } from "@xtia/grid"; // ~4.8kb gzipped (2.2kb + Pipe2D dep)
 
 // initialise a 30x20 Grid<number> of 0's
 const numGrid = Grid.solid(30, 20, 0);
@@ -32,7 +32,7 @@ numGrid.set(3, 3, 50);
 
 // initialise a chessboard
 const chessGrid = Grid.init(8, 8, (x, y) => 
-  (x + y) % 2 === 0 ? 'black' : 'white'
+	(x + y) % 2 === 0 ? 'black' : 'white'
 );
 
 // read a value
@@ -144,7 +144,6 @@ const minimap = world.pipe
 	.floorCoordinates()
 	.crop(viewX, viewY, vw, vh)
 	.stretch(canvas.width, canvas.height);
-
 ```
 
 ## Cell interface
