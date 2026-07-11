@@ -1,6 +1,13 @@
-import { describe, it, expect, test, vitest, beforeEach } from 'vitest'
+import { describe, it, expect, test, vitest } from 'vitest'
 import { Cell, Grid } from '../src/grid'
 import { Pipe2D } from '@xtia/pipe2d';
+import { Source2D } from '../src/utils';
+
+const fn = vitest.fn;
+
+function gridToString<T>(source: Source2D<string | number>): string {
+    return new Pipe2D(source).toFlatArrayXY().join("");
+}
 
 describe("Grid", () => {
 	it("initialises from Source2D with correct values", () => {
@@ -115,8 +122,8 @@ describe("Grid", () => {
 	test("regions are self-bounded", () => {
 		const base = Grid.solid(10, 10, false);
 		const corner = base.region(0, 0, 3, 3);
-		const read = vitest.fn(() => corner.get(5, 0));
-		const write = vitest.fn(() => corner.set(5, 0, true));
+		const read = fn(() => corner.get(5, 0));
+		const write = fn(() => corner.set(5, 0, true));
 		expect(read).toThrow();
 		expect(write).toThrow();
 	});
@@ -149,13 +156,13 @@ describe("Grid", () => {
 		/* 444
 		   455
 		   455 */
-		expect(base.pipe.toFlatArrayXY().join("")).toBe("444455455")
+		expect(gridToString(base)).toBe("444455455")
 	});
 
 	describe("change event", () => {
 		test("triggers on set", () => {
 			const base = Grid.solid(4, 4, 0);
-			const handler = vitest.fn((event: any) => {
+			const handler = fn((event: any) => {
 				expect(event.changedCells.size).toBe(1);
 			});
 			base.on("change", handler);
@@ -166,7 +173,7 @@ describe("Grid", () => {
 		test("suspended during batchUpdate", () => {
 			const base = Grid.solid(4, 4, 0);
 			const checkCell = base.cells.get(0, 0);
-			const handler = vitest.fn((event: any) => {
+			const handler = fn((event: any) => {
 				expect(event.changedCells.size).toBe(3);
 				expect(event.changedCells.has(checkCell)).toBeTruthy();
 			});
@@ -182,10 +189,10 @@ describe("Grid", () => {
 		});
 		test("don't trigger on duplicate write", () => {
 			const grid = Grid.solid(2, 2, 0);
-			const fn = vitest.fn();
-			grid.on("change", fn);
+			const handler = fn();
+			grid.on("change", handler);
 			grid.set(0, 0, 0);
-			expect(fn).not.toHaveBeenCalled();
+			expect(handler).not.toHaveBeenCalled();
 		})
 	});
 
@@ -202,7 +209,7 @@ describe("Grid", () => {
 			7,7,7
 		], 3, 3));
 		base.paste(brush, 1, 1);
-		expect(base.pipe.toFlatArrayXY().join("")).toBe("0011055506661777");
+		expect(gridToString(base)).toBe("0011055506661777");
 	});
 
 	test("Write-masking", () => {
@@ -224,10 +231,50 @@ describe("Grid", () => {
 			1,1,1,0
 		], 4, 4).map(n => n == 1);
 		base.writeMask(mask).paste(brush, 1, 1);
-		expect(base.pipe.toFlatArrayXY().join("")).toBe("0011051102211773");
+		expect(gridToString(base)).toBe("0011051102211773");
 		base.writeMask(mask.map(w => !w)).fill(9);
-		expect(base.pipe.toFlatArrayXY().join("")).toBe("0099059999991779");
+		expect(gridToString(base)).toBe("0099059999991779");
 	});
+
+	test("content scrolling", () => {
+		const grid = Grid.from(Pipe2D.fromFlatArrayXY([
+			1,2,3,
+			4,5,6,
+			7,8,9
+		], 3, 3));
+		expect(grid.get(0, 1)).toBe(4);
+		grid.scroll(1, 0, 0);
+		/* 012
+		   045
+		   078 */
+		expect(gridToString(grid)).toBe("012045078");
+		grid.scroll(-1, 1, 9);
+		/* 999
+		   129
+		   459 */
+		expect(gridToString(grid)).toBe("999129459");		   
+	});
+
+	describe("Invalid operations", () => {
+		test("negative dimensions", () => {
+			expect(fn(() => Grid.init(-1, 1, () => 1))).toThrow();
+			expect(fn(() => Grid.init(1, -1, () => 1))).toThrow();
+			const base = Grid.solid(3, 3, 0);
+			expect(fn(() => base.region(0, 0, -1, 1))).toThrow();
+			expect(fn(() => base.region(0, 0, 1, -1))).toThrow();
+		});
+		test("leaky region", () => {
+			const base = Grid.solid(3, 3, 0);
+			expect(fn(() => base.region(0, 0, 4, 2))).toThrow();
+			expect(fn(() => base.region(-1, 0, 1, 1))).toThrow();
+		});
+		test("fractional coordinates", () => {
+			const base = Grid.solid(3, 3, 0);
+			expect(fn(() => base.set(0, 0.5, 1))).toThrow();
+			expect(fn(() => base.region(0.5, 0.5, 1, 1))).toThrow();
+			expect(fn(() => base.scroll(0.5, 0, 0))).toThrow();
+		});
+	})
 
 })
 
