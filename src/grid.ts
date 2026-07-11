@@ -394,7 +394,15 @@ export class Grid<T> {
 		private parentGet: GetXYFunc<T>,
 		private parentSet: (x: number, y: number, value: T) => void,
 		private batch: (cb: () => void) => void,
-	) {}
+	) {
+		if (!Number.isInteger(width) || !Number.isInteger(height)) {
+			throw new Error(`Grid width & height must be integer; got (${width} x ${height})`);
+		}
+
+		if (width < 0 || height < 0) {
+			throw new Error(`Grid width/height may not be less than 0; got (${width} x ${height})`);
+		}
+	}
 
 	/**
 	 * A `Pipe2D` of this grid's values.
@@ -418,6 +426,9 @@ export class Grid<T> {
 	 * @returns Value read from this grid position
 	 */
 	get(x: number, y: number) {
+		if (!Number.isInteger(x) || !Number.isInteger(y)) {
+			throw new Error(`Coordinates must be integer; got (${x}, ${y})`)
+		}
 		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
 			throw new RangeError("Coordinates out of bounds");
 		}
@@ -431,6 +442,9 @@ export class Grid<T> {
 	 * @param value Value to store
 	 */
 	set(x: number, y: number, value: T) {
+		if (!Number.isInteger(x) || !Number.isInteger(y)) {
+			throw new Error(`Coordinates must be integer; got (${x}, ${y})`)
+		}
 		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
 			throw new RangeError("Coordinates out of bounds");
 		}
@@ -438,11 +452,11 @@ export class Grid<T> {
 	}
 
 	/**
-	 * Sets a value at the specified coordinates if they are within the grid's dimensions.
+	 * Sets a value at the specified coordinates if they are integer and within the grid's dimensions.
 	 * @param x X coordinate
 	 * @param y Y coordinate
 	 * @param value Value to store
-	 * @returns `true` if the write was successful (in-bounds), otherwise `false`.
+	 * @returns `true` if the write was successful (in-bounds & integer coordinates), otherwise `false`.
 	 */
 	trySet(x: number, y: number, value: T): boolean {
     	if (
@@ -479,7 +493,7 @@ export class Grid<T> {
 	 * @param y Destination Y coordinate
 	 */
 	paste(source: Source2D<T>, x: number = 0, y: number = 0) {
-		const cachedSource = new GridBase(source);
+		const cachedSource = new Pipe2D(source).stash();
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
@@ -582,6 +596,12 @@ export class Grid<T> {
 	 * @returns Regional view of this Grid.
 	 */
 	region(x: number, y: number, width: number, height: number) {
+		if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(width) || !Number.isInteger(height)) {
+			throw new Error(`Region boundaries must be integer; got (${x}, ${y}), (${width} x ${height})`)
+		}
+		if (x < 0 || y < 0 || x + width > this.width || y + height > this.height) {
+			throw new Error("Requested region exceeds the parent's bounds");
+		}
 		return new Grid(
 			width,
 			height,
