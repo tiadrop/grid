@@ -596,6 +596,33 @@ export class Grid<T> {
 	}
 
 	/**
+	 * Shifts all content in the grid by X/Y offsets, filling the edge gaps with a specific value
+	 * @param xDelta X offset
+	 * @param yDelta Y offset
+	 * @param fill Value to write at edge gaps
+	 */
+	scroll(xDelta: number, yDelta: number, fill: T): this {
+		if (!Number.isInteger(xDelta) || !Number.isInteger(yDelta)) {
+			throw new Error(`Scroll offsets must be integer; got (${xDelta}, ${yDelta})`);
+		}
+		this.paste(this, xDelta, yDelta);
+
+		if (xDelta > 0) {
+			this.region(0, 0, xDelta, this.height).fill(fill);
+		} else if (xDelta < 0) {
+			this.region(this.width + xDelta, 0, -xDelta, this.height).fill(fill);
+		}
+		
+		if (yDelta > 0) {
+			this.region(0, 0, this.width, yDelta).fill(fill);
+		} else if (yDelta < 0) {
+			this.region(0, this.height + yDelta, this.width, -yDelta).fill(fill);
+		}
+		
+		return this;
+	}
+
+	/**
 	 * Creates a {@link GridBase | `GridBase`}, initialising every value by means of custom function.
 	 * @param width Width of the new Grid
 	 * @param height Height of the new Grid
