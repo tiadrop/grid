@@ -51,10 +51,27 @@ describe("Grid", () => {
 		describe("Pathfinding", () => {
 			const pathTestData = Pipe2D.fromFlatArrayXY([
 				1, 2, 2, 9,
-				5, Infinity, 2, 9,
+				5, 9, 2, 9,
 				1, 2, 3, 9,
 				1, 1, 1, 1
 			], 4, 4);
+
+			test("flood-fill using getCostMap()", () => {
+				const grid = Grid.from(pathTestData);
+				// test with 1-tolerance
+				const mask = grid.cells.get(2, 3).getCostMap((cell, context) => {
+					return Math.abs(context.from.value - cell.value) <= 1 ? 0 : Infinity
+				}).map((cost) => cost == 0);
+				grid.writeMask(mask).fill(7);
+				expect(gridToString(grid)).toBe("7779597977797777");
+				grid.paste(pathTestData);
+				// test with 0-tolerance
+				const mask2 = grid.cells.get(2, 0).getCostMap((cell, context) => {
+					return cell.value === context.from.value ? 0 : Infinity;
+				}).map((cost) => cost == 0);
+				grid.writeMask(mask2).fill(7);
+				expect(gridToString(grid)).toBe("1779597912391111");
+			});
 
 			test("finds optimal path around obstacles", () => {
 				const grid = Grid.from(pathTestData);
