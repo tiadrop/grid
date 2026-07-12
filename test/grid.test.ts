@@ -48,6 +48,22 @@ describe("Grid", () => {
 			expect(cell1.look(0, 1)?.look(0, -1)).toBe(cell1);
 		});
 
+		test("line-to-self returns only self", () => {
+			const grid = Grid.solid(5, 5, 0);
+			const cell = grid.cells.get(3, 3);
+			const line = [...cell.getLineTo([3, 3])];
+			expect(line.length).toBe(1);
+			expect(line[0]).toBe(cell);
+		});
+		test("diagonal line is correct length", () => {
+			const grid = Grid.solid(8, 8, 0);
+			const topLeft = grid.cells.get(0, 0);
+			const topRight = grid.cells.get(7, 0);
+			const bottomRight = grid.cells.get(7, 7);
+			expect([...topLeft.getLineTo(bottomRight)].length).toBe(8);
+			expect([...topLeft.getLineTo(topRight)].length).toBe(8);
+		});
+
 		describe("Pathfinding", () => {
 			const pathTestData = Pipe2D.fromFlatArrayXY([
 				1, 2, 2, 9,
@@ -186,6 +202,16 @@ describe("Grid", () => {
 			expect(handler).not.toHaveBeenCalled();
 			base.set(1, 1, 5);
 			expect(handler).toHaveBeenCalled();
+		});
+		test("handlers are correctly removed", () => {
+			const grid = Grid.solid(4, 4, 0);
+			const handler = fn();
+			const remove = grid.on("change", handler);
+			grid.set(2, 2, 2);
+			expect(handler).toHaveBeenCalled();
+			remove();
+			grid.set(3, 3, 3);
+			expect(handler).toHaveBeenCalledTimes(1);
 		});
 		test("suspended during batchUpdate", () => {
 			const base = Grid.solid(4, 4, 0);
