@@ -383,6 +383,9 @@ export class Grid<T> {
 	 * @see https://github.com/tiadrop/pipe2d
 	 */
 	readonly cells = new Pipe2D(this.width, this.height, (x, y) => {
+		if (x < 0 || x >= this.width || y < 0 || y >= this.height || !Number.isInteger(x) || !Number.isInteger(y)) {
+			throw new RangeError(`Cell coordinates must be bounded integers; got (${x}, ${y})`);
+		}
 		return new Cell(x, y, this)
 	}).strict().withCache();
 
@@ -526,10 +529,10 @@ export class Grid<T> {
 		)
 	}
 
-	*[Symbol.iterator](): IterableIterator<{x: number, y: number, value: T}> {
+	*[Symbol.iterator](): IterableIterator<T> {
 		for (let y = 0; y < this.height; y++) {
 			for (let x = 0; x < this.width; x++) {
-				yield {x, y, value: this.get(x, y)};
+				yield this.get(x, y);
 			}
 		}
 	}
@@ -580,7 +583,7 @@ export class Grid<T> {
 	 * @returns Regional view of this Grid.
 	 */
 	region(x: number, y: number, width: number, height: number) {
-		if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(width) || !Number.isInteger(height)) {
+		if (!Number.isInteger(x) || !Number.isInteger(y)) {
 			throw new Error(`Region boundaries must be integer; got (${x}, ${y}), (${width} x ${height})`)
 		}
 		if (x < 0 || y < 0 || x + width > this.width || y + height > this.height) {
@@ -729,7 +732,7 @@ export class GridBase<T> extends Grid<T> {
 		super(
 			source.width,
 			source.height,
-			(x, y) => this.data[this.xyToIndex(x, y)],
+			(x, y) => this.data[y * this.width + x],
 			(x, y, value) => this._set(x, y, value),
 			fn => this.batchUpdate(fn),
 		);
@@ -752,12 +755,8 @@ export class GridBase<T> extends Grid<T> {
 		}
 	}
 
-	private xyToIndex(x: number, y: number) {
-		return y * this.width + x;
-	}
-
 	private _set(x: number, y: number, value: T) {
-		const idx = this.xyToIndex(x, y);
+		const idx = y * this.width + x;
 		if (this.data[idx] === value) return;
 		this.data[idx] = value;
 		if (this.batchState) {
