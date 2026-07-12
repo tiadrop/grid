@@ -264,7 +264,7 @@ export class Cell<T> {
 				let current: Cell<T> = targetCell;
 				let path: Cell<T>[] = [];
 				
-				while (current !== this) { // 'this' being the parent cell of this pathmap (path start)
+				while (current !== this) { // 'this' being the subject cell of this pathmap (path start)
 					if (cache.has(current)) {
 						path.unshift(...cache.get(current)!);
 						cache.set(targetCell, path);
@@ -311,7 +311,6 @@ export class Cell<T> {
 				yield cell;
 			}
 			
-			// Check if we've reached the target
 			if (x === targetX && y === targetY) {
 				break;
 			}
@@ -548,18 +547,6 @@ export class Grid<T> {
 		}
 	}
 
-	combine<U, R>(aux: Source2D<U>, cb: (source: T, aux: U) => R) {
-		const width = Math.min(this.width, aux.width);
-		const height = Math.min(this.height, aux.height);
-		return new GridBase({
-			width,
-			height,
-			get: (x, y) => {
-				return cb(this.get(x, y), aux.get(x, y))
-			}
-		});
-	}
-
 	/**
 	 * Creates a *two-way* transformed view of this Grid.
 	 * 
@@ -614,7 +601,7 @@ export class Grid<T> {
 	}
 
 	/**
-	 * Shifts all content in the grid by X/Y offsets, filling the edge gaps with a specific value
+	 * Shifts all content in the grid by X/Y offsets, filling the created gaps with a specific value
 	 * @param xDelta X offset
 	 * @param yDelta Y offset
 	 * @param fill Value to write at edge gaps
