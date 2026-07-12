@@ -106,12 +106,11 @@ const lakeGrid = Grid.from(lakeRegion);
 
 ```ts
 const spriteMap = world.map(
-	type => type + ".png",
-	sprite => sprite.replace(/\..*/, '')
+	type => type + ".png", // add .png on parent-read
+	sprite => sprite.replace(/\..*/, '') // remove it on parent-write
 );
 
-world.set(0, 0, "mountain"); // modify the parent
-console.log(spriteMap.get(0, 0)); // read the transformed view: "mountain.png"
+console.log(spriteMap.get(0, 0)); // read the transformed view: "grass.png"
 spriteMap.set(1, 0, "forest.png"); // modify the view
 console.log(world.get(1, 0)); // read the parent: "forest"
 ```
@@ -247,7 +246,7 @@ world.paste(snapshot);
 For persistent storage or transmission, Pipe2D can export as array:
 
 ```ts
-const saved = snapshot.toFlatArrayXY(); // ["mountain", "forest", "grass", ...]
+const saved = snapshot.toFlatArrayXY(); // ["grass", "forest", "grass", ...]
 
 const restoredSnapshot = Pipe2D.fromFlatArrayXY(saved);
 ```
