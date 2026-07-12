@@ -23,6 +23,16 @@ describe("Grid", () => {
 		expect(fromInit.get(4, 3)).toBe(406);
 	});
 
+	test("forEach processes every value, passing value, x, y, row-by-row", () => {
+		const grid = Grid.from(Pipe2D.fromFlatArrayXY([
+			3,1,
+			4,2,
+		], 2, 2));
+		let s = "";
+		grid.forEach((v, x, y) => s += `${v}@${x}x${y};`);
+		expect(s).toBe("3@0x0;1@1x0;4@0x1;2@1x1;");
+	})
+
 	describe("Cell operations", () => {
 		test("cell.value reads & writes source", () => {
 			const base = Grid.solid(4, 4, false);
@@ -167,6 +177,8 @@ describe("Grid", () => {
 		corner.set(1, 1, 1);
 		expect(base.get(4, 4)).toBe(1);
 		expect(base.cells.get(4, 4).getNeighbours(true)).not.toContain(1);
+		base.set(3, 3, 11);
+		expect(corner.get(0, 0)).toBe(11);
 	});
 
 	test("user-supplied storage is correctly read & written", () => {
@@ -191,6 +203,22 @@ describe("Grid", () => {
 		   455 */
 		expect(gridToString(base)).toBe("444455455")
 	});
+
+	describe("Transform layers", () => {
+		const base = Grid.solid(4, 4, 0);
+		const double = base.map(
+			v => v * 2,
+			v => v / 2,
+		);
+		test("reads transformed values", () => {
+			base.set(3, 3, 4);
+			expect(double.get(3, 3)).toBe(8);
+		});
+		test("writes transformed values", () => {
+			double.set(2, 2, 4);
+			expect(base.get(2, 2)).toBe(2);
+		});
+	})
 
 	describe("change event", () => {
 		test("triggers on set", () => {
@@ -253,6 +281,9 @@ describe("Grid", () => {
 		], 3, 3));
 		base.paste(brush, 1, 1);
 		expect(gridToString(base)).toBe("0011055506661777");
+		// ignores oob writes
+		base.paste(brush, 1, 3);
+		expect(gridToString(base)).toBe("0011055506661555")
 	});
 
 	test("Write-masking", () => {
@@ -313,9 +344,13 @@ describe("Grid", () => {
 		});
 		test("fractional coordinates", () => {
 			const base = Grid.solid(3, 3, 0);
+			expect(fn(() => base.get(0.5, 0.5))).toThrow();
 			expect(fn(() => base.set(0, 0.5, 1))).toThrow();
-			expect(fn(() => base.region(0.5, 0.5, 1, 1))).toThrow();
 			expect(fn(() => base.scroll(0.5, 0, 0))).toThrow();
+			expect(fn(() => base.cells.get(0, 0.5))).toThrow();
+			expect(fn(() => base.region(0.5, 0.5, 1, 1))).toThrow();
+			expect(fn(() => base.region(0, 0, 1.1, 1.2))).toThrow();
+
 		});
 	})
 
