@@ -62,7 +62,7 @@ export class Cell<T> {
 	}
 
 	/**
-	 * Get a Cell from a location, specified as Cell or [x,y], throwing if given a foreign Cell
+	 * Get a Cell from a location, specified as Cell or [x,y], throwing if given a foreign Cell.
 	 * @param location 
 	 * @returns 
 	 */
@@ -75,7 +75,7 @@ export class Cell<T> {
 	}
 
 	/**
-	 * Get [x,y] from a location, specified as Cell or [x,y], throwing if given a foreign Cell
+	 * Get [x,y] from a location, specified as Cell or [x,y], throwing if given a foreign Cell.
 	 * @param location 
 	 * @returns 
 	 */
@@ -265,7 +265,7 @@ export class Cell<T> {
 				let path: Cell<T>[] = [];
 				
 				while (current !== this) { // 'this' being the subject cell of this pathmap (path start)
-					if (cache.has(current)) {
+					if (cache.has(current)) { // best path to current is already known
 						path.unshift(...cache.get(current)!);
 						cache.set(targetCell, path);
 						return path;
@@ -368,7 +368,6 @@ export class Cell<T> {
 			}
 		);
 	}
-
 
 }
 
@@ -754,19 +753,13 @@ export class GridBase<T> extends Grid<T> {
 	}
 
 	private xyToIndex(x: number, y: number) {
-		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-            throw new Error(`Coordinates out of bounds: (${x}, ${y})`);
-        }
-		if (!Number.isInteger(x) || !Number.isInteger(y)) {
-			throw new Error(`Coordinates must be integer; got (${x}, ${y})`);
-		}
 		return y * this.width + x;
 	}
 
 	private _set(x: number, y: number, value: T) {
 		const idx = this.xyToIndex(x, y);
 		if (this.data[idx] === value) return;
-		this.data[this.xyToIndex(x, y)] = value;
+		this.data[idx] = value;
 		if (this.batchState) {
 			this.batchState.changedCells.add(this.cells.get(x, y));
 			return;
