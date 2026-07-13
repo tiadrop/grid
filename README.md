@@ -43,7 +43,7 @@ const source = imagePipe
 	.crop(10, 10, 64, 64)
 	.scale(.5)
 	.rotateLeft();
-const grid = Grid.from(source);
+const grid = Grid.init(source);
 ```
 
 ### Wrapping existing structures
@@ -97,7 +97,7 @@ world.writeMask(mask).fill("mountain");
 const lakeRegion = world.region(25, 25, 30, 30);
 
 // do we want a distinct, self-contained copy of the region?
-const lakeGrid = Grid.from(lakeRegion);
+const lakeGrid = Grid.init(lakeRegion);
 ```
 
 ## Transformation Layers
@@ -225,9 +225,9 @@ Unlike visibility maps, which are lazily evaluated according to the supplied `is
 
 ## The storage layer
 
-`Grid` itself is an interface for reading and writing 2D data. `GridBase` - a subclass of `Grid` - maintains the actual storage of such data.
+`Grid` itself is an interface for reading and writing 2D data. `GridBase` - a subclass of `Grid` - maintains actual storage of such data.
 
-Although the Grid factory methods (`Grid.solid<T>()`, `Grid.from<T>()`, `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
+Although the Grid factory methods (`Grid.solid<T>()`, `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
 
 We can perform batched updates, suppressing the 'change' event until a process concludes, with `grid.batchUpdate(callback)`.
 
@@ -238,7 +238,7 @@ Pipe2D makes it easy to save and restore grid data:
 ```ts
 const snapshot = world.pipe.stash();
 
-const restored = Grid.from(snapshot);
+const restored = Grid.init(snapshot);
 // or paste it to an existing grid
 world.paste(snapshot);
 ```

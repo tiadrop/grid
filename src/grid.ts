@@ -636,21 +636,20 @@ export class Grid<T> {
 	 * @param initCell Callback to initialise cells
 	 * @returns A new GridBase of the specified dimensions.
 	 */
-	static init<T>(width: number, height: number, initCell: (x: number, y: number) => T) {
-		return new GridBase({
-			width,
-			height,
-			get: initCell
-		});
-	}
-
+	static init<T>(width: number, height: number, initCell: (x: number, y: number) => T): GridBase<T>
 	/**
 	 * Creates a {@link GridBase | `GridBase`}, using the dimensions of and initialising every value from a 2D source (Grid, Pipe2D, etc).
 	 * @param source A 2D source to provide dimensions and initial values
 	 * @returns A new GridBase, initialised with values read from `source`.
 	 */
-	static from<T>(source: Source2D<T>) {
-		return new GridBase(source);
+	static init<T>(source: Source2D<T>): GridBase<T>
+	static init<T>(widthOrSource: number | Source2D<T>, height?: number, initCell?: (x: number, y: number) => T): GridBase<T> {
+		if (typeof widthOrSource == "object") return new GridBase(widthOrSource);
+		return new GridBase({
+			width: widthOrSource!,
+			height: height!,
+			get: initCell!
+		});
 	}
 
 	/**

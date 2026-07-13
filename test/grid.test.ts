@@ -10,21 +10,24 @@ function gridToString<T>(source: Source2D<string | number>): string {
 }
 
 describe("Grid", () => {
-	it("initialises from Source2D with correct values", () => {
-		const fromPipe = Grid.from({
+	test("initialises from Source2D with correct values", () => {
+		const fromPipe = Grid.init({
 			width: 10,
 			height: 15,
 			get: (x, y) => x * 100 + y * 2
 		});
-		const fromInit = Grid.init(10, 15, (x, y) => x * 100 + y * 2);
 		expect(fromPipe.get(0, 0)).toBe(0);
-		expect(fromInit.get(0, 0)).toBe(0);
 		expect(fromPipe.get(4, 3)).toBe(406);
+	});
+
+	test("initialises from width, height, initCell() with correct values", () => {
+		const fromInit = Grid.init(10, 15, (x, y) => x * 100 + y * 2);
+		expect(fromInit.get(0, 0)).toBe(0);
 		expect(fromInit.get(4, 3)).toBe(406);
 	});
 
 	test("forEach processes every value, passing value, x, y, row-by-row", () => {
-		const grid = Grid.from(Pipe2D.fromFlatArrayXY([
+		const grid = Grid.init(Pipe2D.fromFlatArrayXY([
 			3,1,
 			4,2,
 		], 2, 2));
@@ -83,13 +86,14 @@ describe("Grid", () => {
 			], 4, 4);
 
 			test("flood-fill using getCostMap()", () => {
-				const grid = Grid.from(pathTestData);
+				const grid = Grid.init(pathTestData);
 				// test with 1-tolerance
 				const mask = grid.cells.get(2, 3).getCostMap((cell, context) => {
 					return Math.abs(context.from.value - cell.value) <= 1 ? 0 : Infinity
 				}).map((cost) => cost == 0);
 				grid.writeMask(mask).fill(7);
 				expect(gridToString(grid)).toBe("7779597977797777");
+				// reset grid
 				grid.paste(pathTestData);
 				// test with 0-tolerance
 				const mask2 = grid.cells.get(2, 0).getCostMap((cell, context) => {
@@ -100,7 +104,7 @@ describe("Grid", () => {
 			});
 
 			test("finds optimal path around obstacles", () => {
-				const grid = Grid.from(pathTestData);
+				const grid = Grid.init(pathTestData);
 				const start = grid.cells.get(0, 0);
 				const end = grid.cells.get(3, 3);
 				const path = start.findPath(end, c => c.value)!;
@@ -123,7 +127,7 @@ describe("Grid", () => {
 			});
 
 			test("reusable path maps", () => {
-				const grid = Grid.from(pathTestData);
+				const grid = Grid.init(pathTestData);
 				const start = grid.cells.get(0, 0);
 				const paths = start.getPathMap(c => c.value);
 				const toCorner = paths.get(3, 3);
@@ -133,7 +137,7 @@ describe("Grid", () => {
 			});
 
 			test("shortcuts", () => {
-				const grid = Grid.from(pathTestData);
+				const grid = Grid.init(pathTestData);
 				const start = grid.cells.get(0, 0);
 				const end = grid.cells.get(3, 3);
 				const path = start.findPath(
@@ -268,13 +272,13 @@ describe("Grid", () => {
 	});
 
 	test("pasting", () => {
-		const base = Grid.from(Pipe2D.fromFlatArrayXY([
+		const base = Grid.init(Pipe2D.fromFlatArrayXY([
 			0,0,1,1,
 			0,1,1,1,
 			0,2,2,1,
 			1,2,2,3
 		], 4, 4));
-		const brush = Grid.from(Pipe2D.fromFlatArrayXY([
+		const brush = Grid.init(Pipe2D.fromFlatArrayXY([
 			5,5,5,
 			6,6,6,
 			7,7,7
@@ -287,13 +291,13 @@ describe("Grid", () => {
 	});
 
 	test("Write-masking", () => {
-		const base = Grid.from(Pipe2D.fromFlatArrayXY([
+		const base = Grid.init(Pipe2D.fromFlatArrayXY([
 			0,0,1,1,
 			0,1,1,1,
 			0,2,2,1,
 			1,2,2,3
 		], 4, 4));
-		const brush = Grid.from(Pipe2D.fromFlatArrayXY([
+		const brush = Grid.init(Pipe2D.fromFlatArrayXY([
 			5,5,5,
 			6,6,6,
 			7,7,7
@@ -311,7 +315,7 @@ describe("Grid", () => {
 	});
 
 	test("content scrolling", () => {
-		const grid = Grid.from(Pipe2D.fromFlatArrayXY([
+		const grid = Grid.init(Pipe2D.fromFlatArrayXY([
 			1,2,3,
 			4,5,6,
 			7,8,9
