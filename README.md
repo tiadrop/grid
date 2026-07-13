@@ -225,9 +225,9 @@ Unlike visibility maps, which are lazily evaluated according to the supplied `is
 
 ## The storage layer
 
-`Grid` itself is an interface for reading and writing 2D data. `GridBase` - a subclass of `Grid` - maintains actual storage of such data.
+`Grid` itself is an interface that sits on top of a synchronous 2D read/write mechanism. `GridBase` is a subclass of `Grid` with built-in storage.
 
-Although the Grid factory methods (`Grid.solid<T>()`, `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
+Although the factory methods `Grid.solid<T>()` and `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
 
 We can perform batched updates, suppressing the 'change' event until a process concludes, with `grid.batchUpdate(callback)`.
 
