@@ -43,6 +43,36 @@ type CostFunc<T> = (cell: Cell<T>, context: {
 	from: Cell<T>;
 }) => number;
 
+type RectSpec = (
+	{
+		left: number;
+		width: number;
+		right?: undefined;
+	} | {
+		left: number;
+		width?: undefined;
+		right: number;
+	} | {
+		left?: undefined;
+		width: number;
+		right: number;
+	}
+) & (
+	{
+		top: number;
+		height: number;
+		bottom?: undefined;
+	} | {
+		top: number;
+		height?: undefined;
+		bottom: number;
+	} | {
+		top?: undefined;
+		height: number;
+		bottom: number;
+	}
+)
+
 export class Cell<T> {
 	constructor(
 		public readonly x: number,
@@ -387,7 +417,7 @@ export class Grid<T> {
 			throw new RangeError(`Cell coordinates must be bounded integers; got (${x}, ${y})`);
 		}
 		return new Cell(x, y, this)
-	}).strict().withCache();
+	}).withCache();
 
 	protected constructor(
 		public readonly width: number,
@@ -396,12 +426,8 @@ export class Grid<T> {
 		private parentSet: (x: number, y: number, value: T) => void,
 		private batch: (cb: () => void) => void,
 	) {
-		if (!Number.isInteger(width) || !Number.isInteger(height)) {
-			throw new Error(`Grid width & height must be integer; got (${width} x ${height})`);
-		}
-
-		if (width < 0 || height < 0) {
-			throw new Error(`Grid width/height may not be less than 0; got (${width} x ${height})`);
+		if (!Number.isInteger(width) || !Number.isInteger(height) || width < 0 || height < 0) {
+			throw new Error(`Grid width & height must be non-negative integers; got (${width} x ${height})`);
 		}
 	}
 
@@ -409,6 +435,8 @@ export class Grid<T> {
 	 * A `Pipe2D` of this grid's values.
 	 * 
 	 * `Pipe2D` is a lazily-evaluated 2D pipeline. Values produced by the pipeline reflect the grid's state when the pipeline is queried.
+	 * 
+	 * @see {@link https://github.com/tiadrop/pipe2d}
 	 */
 	pipe = new Pipe2D(this);
 
@@ -427,12 +455,7 @@ export class Grid<T> {
 	 * @returns Value read from this grid position
 	 */
 	get(x: number, y: number) {
-		if (!Number.isInteger(x) || !Number.isInteger(y)) {
-			throw new Error(`Coordinates must be integer; got (${x}, ${y})`)
-		}
-		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-			throw new RangeError("Coordinates out of bounds");
-		}
+		this.assertValidCoordinates(x, y);
 		return this.parentGet(x, y);
 	}
 
@@ -443,21 +466,16 @@ export class Grid<T> {
 	 * @param value Value to store
 	 */
 	set(x: number, y: number, value: T) {
-		if (!Number.isInteger(x) || !Number.isInteger(y)) {
-			throw new Error(`Coordinates must be integer; got (${x}, ${y})`)
-		}
-		if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-			throw new RangeError("Coordinates out of bounds");
-		}
+		this.assertValidCoordinates(x, y);
 		this.parentSet(x, y, value);
 	}
 
 	/**
-	 * Sets a value at the specified coordinates if they are integer and within the grid's dimensions.
+	 * Sets a value at the specified coordinates if they are within the grid's dimensions.
 	 * @param x X coordinate
 	 * @param y Y coordinate
 	 * @param value Value to store
-	 * @returns `true` if the write was successful (in-bounds & integer coordinates), otherwise `false`.
+	 * @returns `true` if the write was successful (in-bounds), otherwise `false`.
 	 */
 	trySet(x: number, y: number, value: T): boolean {
     	if (
@@ -465,10 +483,8 @@ export class Grid<T> {
 			|| x >= this.width
 			|| y < 0
 			|| y >= this.height
-			|| !Number.isInteger(x)
-			|| !Number.isInteger(y)
 		) return false;
-    	this.set(x, y, value);
+    	this.parentSet(x, y, value);
     	return true;
 	}
 
@@ -481,7 +497,7 @@ export class Grid<T> {
 		this.batchUpdate(() => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					this.set(x, y, value);
+					this.parentSet(x, y, value);
 				}
 			}
 		});
@@ -494,13 +510,15 @@ export class Grid<T> {
 	 * @param y Destination Y coordinate
 	 */
 	paste(source: Source2D<T>, x: number = 0, y: number = 0) {
-		const cachedSource = new Pipe2D(source).stash();
+		this.assertValidCoordinates(x, y, true);
+		const sourcePipe = source instanceof Pipe2D ? source : new Pipe2D(source);
+		const cachedSource = sourcePipe.stash();
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
 					const tx = ox + x, ty = oy + y;
 					if (tx < 0 || tx >= this.width || ty < 0 || ty >= this.height) continue;
-					this.set(tx, ty, cachedSource.get(ox, oy));
+					this.parentSet(tx, ty, cachedSource.get(ox, oy));
 				}
 			}
 		});
@@ -522,7 +540,7 @@ export class Grid<T> {
 			(x, y, v) => {
 				const writable = getMask(x, y);
 				if (writable) {
-					this.set(x, y, v);
+					this.parentSet(x, y, v);
 				}
 			},
 			cb => this.batch(cb),
@@ -561,7 +579,7 @@ export class Grid<T> {
 	 */
 	map<U>(
 		read: (initial: T, x: number, y: number) => U,
-		write: (local: U, x: number, y: number) => T
+		write: ((local: U, x: number, y: number) => T)
 	) {
 		return new Grid(
 			this.width,
@@ -582,13 +600,47 @@ export class Grid<T> {
 	 * @param height Region height
 	 * @returns Regional view of this Grid.
 	 */
-	region(x: number, y: number, width: number, height: number) {
-		if (!Number.isInteger(x) || !Number.isInteger(y)) {
-			throw new Error(`Region boundaries must be integer; got (${x}, ${y}), (${width} x ${height})`)
+	region(x: number, y: number, width: number, height: number): Grid<T>
+	/**
+	 * **Experimental**
+	 * 
+	 * Creates a regional view of this Grid by specifying a rect that can be expressed as distances from top, left, right and bottom edges
+	 * @param rect 
+	 */
+	region(rect: RectSpec): Grid<T>
+	region(xOrRect: number | RectSpec, y: number = 0, width: number = 0, height: number = 0): Grid<T> {
+		let x: number;
+		if (typeof xOrRect == "number") {
+			x = xOrRect;
+		} else {
+			if (xOrRect.left === undefined) {
+				width = xOrRect.width; // {right, width}
+				x = (this.width - 1 - xOrRect.right) - width + 1;
+			} else {
+				x = xOrRect.left;
+				width = xOrRect.width === undefined
+					? (this.width - 1 - xOrRect.right) - x + 1  // {left, right}
+					: xOrRect.width;  // {left, width}
+			}
+			if (xOrRect.top === undefined) {
+				height = xOrRect.height; // {bottom, height}
+				y = (this.height - 1 - xOrRect.bottom) - height + 1;
+			} else {
+				y = xOrRect.top;
+				height = xOrRect.height === undefined
+					? (this.height - 1 - xOrRect.bottom) - y + 1  // {top, bottom}
+					: xOrRect.height;  // {top, height}
+			}
 		}
-		if (x < 0 || y < 0 || x + width > this.width || y + height > this.height) {
-			throw new Error("Requested region exceeds the parent's bounds");
+
+		this.assertValidCoordinates(x, y);
+		if (!Number.isInteger(width) || !Number.isInteger(height)) {
+			throw new Error("Region dimensions must be integer");
 		}
+		if (x + width > this.width || y + height > this.height) {
+			throw new RangeError("Requested region exceeds the parent's bounds");
+		}
+
 		return new Grid(
 			width,
 			height,
@@ -609,9 +661,7 @@ export class Grid<T> {
 	 * @param fill Value to write at edge gaps
 	 */
 	scroll(xDelta: number, yDelta: number, fill: T): this {
-		if (!Number.isInteger(xDelta) || !Number.isInteger(yDelta)) {
-			throw new Error(`Scroll offsets must be integer; got (${xDelta}, ${yDelta})`);
-		}
+		this.assertValidCoordinates(xDelta, yDelta, true);
 		this.paste(this, xDelta, yDelta);
 
 		if (xDelta > 0) {
@@ -690,6 +740,15 @@ export class Grid<T> {
 		batch: (callback: () => void) => void = cb => cb()
 	) {
 		return new Grid(width, height, get, set, batch);
+	}
+
+	private assertValidCoordinates(x: number, y: number, ignoreBounds: boolean = false) {
+		if (!Number.isInteger(x) || !Number.isInteger(y)) {
+			throw new Error(`Coordinates must be integer; got (${x}, ${y})`)
+		}
+		if (!ignoreBounds && (x < 0 || x >= this.width || y < 0 || y >= this.height)) {
+			throw new RangeError(`Coordinates out of bounds (${x}, ${y}) / (${this.width}, ${this.height})`);
+		}
 	}
 }
 

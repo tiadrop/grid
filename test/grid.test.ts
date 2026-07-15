@@ -166,24 +166,42 @@ describe("Grid", () => {
 
 	});
 
-	test("regions are self-bounded", () => {
-		const base = Grid.solid(10, 10, false);
-		const corner = base.region(0, 0, 3, 3);
-		const read = fn(() => corner.get(5, 0));
-		const write = fn(() => corner.set(5, 0, true));
-		expect(read).toThrow();
-		expect(write).toThrow();
-	});
+	describe("Regions", () => {
+		test("regions are self-bounded", () => {
+			const base = Grid.solid(10, 10, false);
+			const corner = base.region(0, 0, 3, 3);
+			const read = fn(() => corner.get(5, 0));
+			const write = fn(() => corner.set(5, 0, true));
+			expect(read).toThrow();
+			expect(write).toThrow();
+		});
 
-	test("region writes affect parents at correct offset", () => {
-		const base = Grid.solid(5, 5, 0);
-		const corner = base.region(3, 3, 2, 2);
-		corner.set(1, 1, 1);
-		expect(base.get(4, 4)).toBe(1);
-		expect(base.cells.get(4, 4).getNeighbours(true)).not.toContain(1);
-		base.set(3, 3, 11);
-		expect(corner.get(0, 0)).toBe(11);
-	});
+		test("region writes affect parents at correct offset", () => {
+			const base = Grid.solid(5, 5, 0);
+			const corner = base.region(3, 3, 2, 2);
+			corner.set(1, 1, 1);
+			expect(base.get(4, 4)).toBe(1);
+			expect(base.cells.get(4, 4).getNeighbours(true)).not.toContain(1);
+			base.set(3, 3, 11);
+			expect(corner.get(0, 0)).toBe(11);
+		});
+
+		test("regions created by rect definitions are correct", () => {
+			const base = Grid.solid(100, 100, 0);
+			const leftRight = base.region({left: 10, right: 10, top: 10, bottom: 10});
+			expect(leftRight.width).toBe(80);
+			expect(leftRight.height).toBe(80);
+			const rightWidth = base.region({right: 0, width: 3, top: 0, bottom: 0});
+			rightWidth.set(2, 0, 1);
+			rightWidth.set(0, 0, 2);
+			expect(base.get(99, 0)).toBe(1);
+			expect(base.get(97, 0)).toBe(2);
+			const bottomHeight = rightWidth.region({bottom: 0, height: 3, left: 0, right: 0});
+			bottomHeight.set(0, 0, 3);
+			expect(base.get(97, 97)).toBe(3);
+		});
+
+	})
 
 	test("user-supplied storage is correctly read & written", () => {
 		const store = [
@@ -333,6 +351,11 @@ describe("Grid", () => {
 		expect(gridToString(grid)).toBe("999129459");		   
 	});
 
+	test("grid iteration yields values in row-major order", () => {
+		const grid = Grid.init(3, 3, (x, y) => x + y * 3);
+		expect([...grid].join("")).toBe("012345678");
+	});
+
 	describe("Invalid operations", () => {
 		test("negative dimensions", () => {
 			expect(fn(() => Grid.init(-1, 1, () => 1))).toThrow();
@@ -345,6 +368,8 @@ describe("Grid", () => {
 			const base = Grid.solid(3, 3, 0);
 			expect(fn(() => base.region(0, 0, 4, 2))).toThrow();
 			expect(fn(() => base.region(-1, 0, 1, 1))).toThrow();
+			const inner = base.region(0, 0, 1, 1);
+			expect(fn(() => inner.set(1, 1, 1))).toThrow();
 		});
 		test("fractional coordinates", () => {
 			const base = Grid.solid(3, 3, 0);
