@@ -22,7 +22,7 @@ npm i @xtia/grid
 ```
 
 ```ts
-import { Grid } from "@xtia/grid"; // ~4.8kb gzipped (2.2kb + Pipe2D dep)
+import { Grid } from "@xtia/grid"; // ~5.1kb gzipped (2.5kb + Pipe2D dep)
 
 // initialise a 30x20 Grid<number> of 0's
 const numGrid = Grid.solid(30, 20, 0);
