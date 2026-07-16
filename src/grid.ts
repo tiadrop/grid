@@ -73,6 +73,9 @@ type RectSpec = (
 	}
 )
 
+const cardinalOffsets = [[-1,0],[1,0],[0,-1],[0,1]];
+const allOffsets = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
 export class Cell<T> {
 	constructor(
 		public readonly x: number,
@@ -124,13 +127,12 @@ export class Cell<T> {
 	 */
 	getNeighbours(includeDiagonals: boolean = false) {
 		const offsets = includeDiagonals 
-			? [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
-			: [[-1,0],[1,0],[0,-1],[0,1]];
+			? allOffsets
+			: cardinalOffsets;
 
 		return offsets
-			.map(([ox, oy]) => [ox + this.x, oy + this.y])
-			.filter(([tx, ty]) => tx >= 0 && tx < this.gridView.width && ty >= 0 && ty < this.gridView.height)
-			.map(([tx, ty]) => this.gridView.cells.get(tx, ty));
+			.map(o => this.look(o[0], o[1]))
+			.filter(v => v) as Cell<T>[];
 	}
 
 	/**
@@ -169,6 +171,9 @@ export class Cell<T> {
 
 	/**
 	 * Computes a map of optimal paths from this cell, based on a cell costing predicate.
+	 * 
+	 * When queried, a path map provides an array of `Cell<T>` for reachable locations (otherwise `null`) according to `getCost` and
+	 * grid state **at time of the path map's creation**.
 	 * @param getCost Function that returns the movement cost for traversing a cell
 	 * @param options Configuration for pathfinding behavior (max cost, diagonal movement, etc)
 	 * @returns Map containing optimal paths to all reachable cells. Unreachable cells are mapped as `null`.
@@ -506,13 +511,23 @@ export class Grid<T> {
 	/**
 	 * Copies values from a 2D source (Grid, Pipe2D, etc) to this Grid.
 	 * @param source Source to copy values from
-	 * @param x Destination X coordinate
-	 * @param y Destination Y coordinate
+	 * @param x Destination X coordinate (default: 0)
+	 * @param y Destination Y coordinate (default: 0)
 	 */
-	paste(source: Source2D<T>, x: number = 0, y: number = 0) {
+	paste(source: Source2D<T>, x?: number, y?: number): void
+	/**
+	 * Replaces every value in the Grid with values returned by a `(x, y) => T` predicate
+	 * @param get A function, called for each cell location, returning a new value for that cell
+	 */
+	paste(get: GetXYFunc<T>): void
+	paste(_source: Source2D<T> | GetXYFunc<T>, x: number = 0, y: number = 0): void {
 		this.assertValidCoordinates(x, y, true);
+		const source = typeof _source == "function"
+			? new Pipe2D(this.width, this.height, _source)
+			: _source;
 		const sourcePipe = source instanceof Pipe2D ? source : new Pipe2D(source);
 		const cachedSource = sourcePipe.stash();
+
 		this.batchUpdate(() => {
 			for (let oy = 0; oy < source.height; oy++) {
 				for (let ox = 0; ox < source.width; ox++) {
