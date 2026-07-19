@@ -443,7 +443,12 @@ export class Grid<T> {
 	 * 
 	 * @see {@link https://github.com/tiadrop/pipe2d}
 	 */
-	pipe = new Pipe2D(this);
+	values = new Pipe2D(this);
+
+	/**
+	 * @deprecated Use grid.values
+	 */
+	pipe = this.values;
 
 	/**
 	 * Executes a custom callback without triggering any `change` events on the underlying GridBase until the callback concludes

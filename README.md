@@ -115,11 +115,11 @@ spriteMap.set(1, 0, "forest.png"); // modify the view
 console.log(world.get(1, 0)); // read the parent: "forest"
 ```
 
-For one-way read-mapping, use `grid.pipe` - a [Pipe2D](https://github.com/tiadrop/pipe2d) view into the grid's data.
+For one-way read-mapping, use `grid.values` - a [Pipe2D](https://github.com/tiadrop/pipe2d) view into the grid's data.
 
 ```ts
 // create a one-way, player-centred sprite map
-const viewport = world.pipe
+const viewport = world.values
 	.oob("mountain")
 	.map(t => t + ".png")
 	.crop(playerX - 5, playerY - 5, 10, 10);
@@ -138,7 +138,7 @@ const colourMap = new Map(Object.entries({
 	forest: C.x080,
 	mountain: C.xa70
 }));
-const minimap = world.pipe
+const minimap = world.values
 	.map(colourMap)
 	.floorCoordinates()
 	.crop(viewX, viewY, vw, vh)
@@ -236,7 +236,7 @@ We can perform batched updates, suppressing the 'change' event until a process c
 Pipe2D makes it easy to save and restore grid data:
 
 ```ts
-const snapshot = world.pipe.stash();
+const snapshot = world.values.stash();
 
 const restored = Grid.init(snapshot);
 // or paste it to an existing grid
