@@ -13,7 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "lib",
     "rootDir": "src",
-    "target": "ES2016",
+    "target": "ES2022",
     "module": "preserve",
     "removeComments": true,
     "declaration": true,

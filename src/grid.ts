@@ -412,18 +412,6 @@ function getDistance(c1: {x: number, y: number}, c2: {x: number, y: number}): nu
 
 export class Grid<T> {
 
-	/**
-	 * A `Pipe2D` of this grid's Cells, providing location-based functionality
-	 * 
-	 * @see https://github.com/tiadrop/pipe2d
-	 */
-	readonly cells = new Pipe2D(this.width, this.height, (x, y) => {
-		if (x < 0 || x >= this.width || y < 0 || y >= this.height || !Number.isInteger(x) || !Number.isInteger(y)) {
-			throw new RangeError(`Cell coordinates must be bounded integers; got (${x}, ${y})`);
-		}
-		return new Cell(x, y, this)
-	}).withCache();
-
 	protected constructor(
 		public readonly width: number,
 		public readonly height: number,
@@ -434,14 +422,23 @@ export class Grid<T> {
 		if (!Number.isInteger(width) || !Number.isInteger(height) || width < 0 || height < 0) {
 			throw new Error(`Grid width & height must be non-negative integers; got (${width} x ${height})`);
 		}
+		this.cells = new Pipe2D(width, height, (x, y) => {
+			if (x < 0 || x >= width || y < 0 || y >= height || !Number.isInteger(x) || !Number.isInteger(y)) {
+				throw new RangeError(`Cell coordinates must be bounded integers; got (${x}, ${y})`);
+			}
+			return new Cell(x, y, this)
+		}).withCache();
 	}
 
 	/**
-	 * A `Pipe2D` of this grid's values.
+	 * A {@link https://github.com/tiadrop/pipe2d | `Pipe2D`} of this grid's Cells, providing location-based functionality
+	 */
+	readonly cells: Pipe2D<Cell<T>>;
+
+	/**
+	 * A {@link https://github.com/tiadrop/pipe2d | `Pipe2D`} that reads values from this Grid.
 	 * 
 	 * `Pipe2D` is a lazily-evaluated 2D pipeline. Values produced by the pipeline reflect the grid's state when the pipeline is queried.
-	 * 
-	 * @see {@link https://github.com/tiadrop/pipe2d}
 	 */
 	values = new Pipe2D(this);
 
@@ -558,10 +555,13 @@ export class Grid<T> {
 			this.height,
 			this.parentGet,
 			(x, y, v) => {
-				const writable = getMask(x, y);
-				if (writable) {
-					this.parentSet(x, y, v);
+				try {
+					const writable = getMask(x, y);
+					if (!writable) return;
+				} catch (e) {
+					throw new Error(`Failed to read write-mask at (${x}, ${y})`, {cause: e});
 				}
+				this.parentSet(x, y, v);
 			},
 			cb => this.batch(cb),
 		)
