@@ -563,7 +563,7 @@ export class Grid<T> {
 				}
 				this.parentSet(x, y, v);
 			},
-			cb => this.batch(cb),
+			this.batch,
 		)
 	}
 
@@ -606,7 +606,7 @@ export class Grid<T> {
 			this.height,
 			(x, y) => read(this.parentGet(x, y), x, y),
 			(x, y, value) => this.parentSet(x, y, write(value, x, y)),
-			fn => this.batch(fn),
+			this.batch,
 		)
 	}
 
