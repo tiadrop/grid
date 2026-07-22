@@ -147,7 +147,7 @@ const minimap = world.values
 
 ## Write-masking
 
-Any `Source2D<boolean>` (`{x, y, get}`), or function of `(x, y) => boolean`, can be used to create a layer that restricts or allows changes to cells based on their position.
+Any `Source2D<boolean>` (`{ width, height, get(x, y) }`), or function of `(x, y) => boolean`, can be used to create a layer that restricts or allows changes to cells based on their position.
 
 `writeMask(mask)` returns a zero-copy view that silently rejects changes to positions for which the mask returns `false`.
 
@@ -218,6 +218,20 @@ const path = start.findPath(
 	destination, // or simply [90, 90]
 	(cell) => costs[cell.value]
 ); // Cell<string>[]
+```
+
+#### `Map<T>` costing
+
+As well as a callback of `(cell, context) => number`, `findPath()` can accept a `Map<T>` to assign traversal costs to values.
+
+```ts
+const costs = new Map<string, number>();
+costs.set("grass", 1);
+costs.set("forest", 2);
+
+// ...
+
+const path = start.findPath(destination, costs);
 ```
 
 ### Visibility mapping
