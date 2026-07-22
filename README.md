@@ -102,7 +102,7 @@ const lakeGrid = Grid.init(lakeRegion);
 
 ## Transformation Layers
 
-`grid.map(read, write)` creates a **zero-copy view** that reads and writes the parent through the provided transformation functions.
+`grid.map(read, write)` creates a zero-copy view that reads and writes the parent through the provided transformation functions.
 
 ```ts
 const spriteMap = world.map(
@@ -145,6 +145,29 @@ const minimap = world.values
 	.stretch(canvas.width, canvas.height);
 ```
 
+## Write-masking
+
+Any `Source2D<boolean>` (`{x, y, get}`), or function of `(x, y) => boolean`, can be used to create a layer that restricts or allows changes to cells based on their position.
+
+`writeMask(mask)` returns a zero-copy view that silently rejects changes to positions for which the mask returns `false`.
+
+```ts
+// a shape
+const circle = grid.cells.get(50, 50)
+  .createVisibilityMap(() => true, { maxDistance: 10 });
+
+// a pattern
+const chessboard = (x, y) => (x + y) % 2 === 0;
+
+const stencil = Grid.init(100, 100, () => Math.random() < .5));
+stencil.region(2, 2, 97, 97).fill(true);
+
+grid.writeMask(circle).fill(1);
+grid.writeMask(chessboard).fill(2);
+grid.writeMask(stencil).fill(3);
+grid.writeMask(() => Math.random() < .7).fill(4);
+```
+
 ## Cell interface
 
 `grid.cells` provides a Pipe2D, for convenient transformation, of Cell objects, each representing a live view into a grid location.
@@ -165,7 +188,7 @@ Cells provide methods for locational utilities such as pathfinding and visibilit
 
 Cells are unique to, owned by, and coordinated relative to the view that provided them. Their pathfinding and visibility mapping features are unaware of space outside of their view's bounds.
 
-### (Everybody needs good) Neighbours
+### Neighbours
 
 `cell.getNeighbours(includeDiagonals?)` returns an array of Cells:
 
