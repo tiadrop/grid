@@ -264,9 +264,9 @@ Unlike visibility maps, which are lazily evaluated according to the supplied `is
 
 `Grid` itself is an interface that sits on top of a synchronous 2D read/write mechanism. `GridBase` is a subclass of `Grid` with built-in storage.
 
-Although the factory methods `Grid.solid<T>()` and `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` is an exception, returning `Grid<T>`, as it uses a storage layer provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
+Although the factory methods `Grid.solid<T>()` and `Grid.init<T>()`) belong to `Grid`, they return a `GridBase<T>`. `Grid.wrap<T>()` and `Grid.wrapBytes()`, on the other hand, return `Grid<T>` and `Grid<U8A>` respectively, as they use storage layers provided by the user. The only API distinction is that `GridBase` provides a 'change' event, via `grid.on("change", handler)`.
 
-We can perform batched updates, suppressing the 'change' event until a process concludes, with `grid.batchUpdate(callback)`.
+We can suppress the 'change' event until a process concludes with `grid.batchUpdate(callback)`.
 
 ## Save and load
 
@@ -286,4 +286,45 @@ For persistent storage or transmission, Pipe2D can export as array:
 const saved = snapshot.toFlatArrayXY(); // ["grass", "forest", "grass", ...]
 
 const restoredSnapshot = Pipe2D.fromFlatArrayXY(saved);
+```
+
+## Experimental methods
+
+### `Grid.wrapBytes()`
+
+Access a byte array as a Grid of 'byte chunks'; useful, for example, for wrapping canvas `ImageData` as a Grid interface.
+
+Reading a value from a Grid created with this method yields a **live** subarray from the source, and writing to the grid
+updates the source at the computed offset.
+
+```ts
+// wrapping canvas ImageData
+const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+const imageGrid = Grid.wrapBytes(imageData);
+
+// optionally wrap byte chunks with a colour library
+const rgbaGrid = imageGrid.map(
+	bytes => new RGBA(bytes),
+	rgba => rgba.asBytes
+);
+
+rgbaGrid.region(0, 0, 5, 5).fill(parseRGBA("#f00"));
+
+// or manipulate a chunk directly
+const pixel = imageGrid.get(5, 5);
+pixel[3] /= 2; // chunks are live subarrays
+
+// write back
+canvasContext.putImageData(imageData, 0, 0);
+```
+
+`wrapBytes()` can accept any byte array, with any chunk size:
+
+```ts
+const byteGrid = Grid.wrapBytes(
+	width,
+	height,
+	bytes, // Uint8Array or Uint8ClampedArray
+	bytesPerCell: 2,
+);
 ```

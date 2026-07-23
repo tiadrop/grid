@@ -38,6 +38,12 @@ export enum TraversalType {
 	shortcut
 }
 
+type ImageDataLike = {
+	width: number;
+	height: number;
+	data: Uint8ClampedArray;
+}
+
 type CostFunc<T> = (cell: Cell<T>, context: {
 	traversalType: TraversalType;
 	from: Cell<T>;
@@ -716,7 +722,7 @@ export class Grid<T> {
 	static init<T>(widthOrSource: number | Source2D<T>, height?: number, initCell?: (x: number, y: number) => T): GridBase<T> {
 		if (typeof widthOrSource == "object") return new GridBase(widthOrSource);
 		return new GridBase({
-			width: widthOrSource!,
+			width: widthOrSource,
 			height: height!,
 			get: initCell!
 		});
@@ -760,6 +766,96 @@ export class Grid<T> {
 		batch: (callback: () => void) => void = cb => cb()
 	) {
 		return new Grid(width, height, get, set, batch);
+	}
+
+	/**
+	 * Wraps a sequence of bytes as a Grid of **live** subsequences of a specified size.
+	 * 
+	 * **Note:** Unlike with most Grids, `set` will not replace the target cell's view object.
+	 * Instead, it copies bytes into the existing live view, directly modifying the underlying
+	 * `bytes` array. Subsequent reads reflect the updated values because all views remain
+	 * live references.
+	 * 
+	 * **Experimental** - this method may change, or be removed, pre-1.0.0
+	 * @param width Width of the resulting Grid
+	 * @param height Height of the resulting Grid
+	 * @param bytes The byte sequence to wrap
+	 * @param bytesPerCell Number of bytes in each subsequence
+	 */
+	static wrapBytes<T extends Uint8Array | Uint8ClampedArray>(
+		width: number,
+		height: number,
+		bytes: T,
+		bytesPerCell: number,
+	): Grid<T>
+	/**
+	 * Wraps a DOM canvas ImageData as a Grid of **live** 4-byte RGBA chunks.
+	 * 
+	 * @example
+	 * ```ts
+	 * const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+	 * const imageGrid = Grid.wrapBytes(imageData);
+	 * 
+	 * // optionally wrap byte chunks with a colour library
+	 * const rgbaGrid = imageGrid.map(
+	 *   bytes => new RGBA(bytes),
+	 *   rgba => rgba.asBytes
+	 * );
+	 * 
+	 * rgbaGrid.region(0, 0, 5, 5).fill(parseRGBA("#f00"));
+	 * 
+	 * // or manipulate a chunk directly
+	 * const pixel = imageGrid.get(5, 5);
+	 * pixel[3] /= 2; // chunks are live subarrays
+	 * 
+	 * // write back
+	 * canvasContext.putImageData(imageData, 0, 0);
+	 * ```
+	 * 
+	 * **Note:** Unlike with most Grids, `set` will not replace the target cell's view object.
+	 * Instead, it copies bytes into the existing live view, directly modifying theunderlying
+	 * `ImageData`. Subsequent reads reflect the updated values because all views remain live
+	 * references.
+	 * 
+	 * **Experimental** - this method may change, or be removed, pre-1.0.0
+	 * @param imageData The ImageData object to wrap
+	 */
+	static wrapBytes(imageData: ImageDataLike): Grid<Uint8ClampedArray>
+	static wrapBytes(
+		widthOrSource: number | ImageDataLike,
+		height?: number,
+		bytes?: Uint8Array | Uint8ClampedArray,
+		bytesPerCell?: number,
+	): Grid<any> {
+		if (typeof widthOrSource == "object") {
+			return Grid.wrapBytes(
+				widthOrSource.width,
+				widthOrSource.height,
+				widthOrSource.data,
+				4
+			);
+		}
+		const width = widthOrSource;
+		const cached = new Pipe2D(
+			width,
+			height!,
+			(x, y) => {
+				const idx = (y * width + x) * bytesPerCell!;
+				return bytes!.subarray(idx, idx + bytesPerCell!);
+			},
+		).withCache();
+		return Grid.wrap(
+			width,
+			height!,
+			(x, y) => cached.get(x, y),
+			(x, y, chunk) => {
+				if (chunk.length !== bytesPerCell) {
+					throw new RangeError(`Trying to write a byte chunk with incorrect length (expected ${bytesPerCell}, got ${chunk.length}`);
+				}
+				const idx = (y * width + x) * bytesPerCell!;
+				bytes!.set(chunk, idx);
+			}
+		);
 	}
 
 	private assertValidCoordinates(x: number, y: number, ignoreBounds: boolean = false) {
