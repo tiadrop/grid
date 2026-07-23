@@ -434,6 +434,7 @@ export class Grid<T> {
 			}
 			return new Cell(x, y, this)
 		}).withCache();
+		this.values = new Pipe2D(this);
 	}
 
 	/**
@@ -446,12 +447,7 @@ export class Grid<T> {
 	 * 
 	 * `Pipe2D` is a lazily-evaluated 2D pipeline. Values produced by the pipeline reflect the grid's state when the pipeline is queried.
 	 */
-	values = new Pipe2D(this);
-
-	/**
-	 * @deprecated Use grid.values
-	 */
-	pipe = this.values;
+	values: Pipe2D<T>;
 
 	/**
 	 * Executes a custom callback without triggering any `change` events on the underlying GridBase until the callback concludes
