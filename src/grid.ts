@@ -765,24 +765,23 @@ export class Grid<T> {
 	}
 
 	/**
-	 * Wraps a sequence of bytes as a Grid of **live** subsequences of a specified size.
+	 * Wraps a sequence of bytes as a Grid of **live** subsequences of size `bytes.length / (width * height)`.
 	 * 
 	 * **Note:** Unlike with most Grids, `set` will not replace the target cell's view object.
 	 * Instead, it copies bytes into the existing live view, directly modifying the underlying
 	 * `bytes` array. Subsequent reads reflect the updated values because all views remain
-	 * live references.
+	 * live references. Mutating a subarray will mutate the wrapped byte array but will not
+	 * trigger a `change` event.
 	 * 
 	 * **Experimental** - this method may change, or be removed, pre-1.0.0
 	 * @param width Width of the resulting Grid
 	 * @param height Height of the resulting Grid
 	 * @param bytes The byte sequence to wrap
-	 * @param bytesPerCell Number of bytes in each subsequence
 	 */
 	static wrapBytes<T extends Uint8Array | Uint8ClampedArray>(
 		width: number,
 		height: number,
 		bytes: T,
-		bytesPerCell: number,
 	): Grid<T>
 	/**
 	 * Wraps a DOM canvas ImageData as a Grid of **live** 4-byte RGBA chunks.
@@ -811,7 +810,8 @@ export class Grid<T> {
 	 * **Note:** Unlike with most Grids, `set` will not replace the target cell's view object.
 	 * Instead, it copies bytes into the existing live view, directly modifying theunderlying
 	 * `ImageData`. Subsequent reads reflect the updated values because all views remain live
-	 * references.
+	 * references. Mutating a subarray will mutate the wrapped byte array but will not
+	 * trigger a `change` event.
 	 * 
 	 * **Experimental** - this method may change, or be removed, pre-1.0.0
 	 * @param imageData The ImageData object to wrap
@@ -821,17 +821,26 @@ export class Grid<T> {
 		widthOrSource: number | ImageDataLike,
 		height?: number,
 		bytes?: Uint8Array | Uint8ClampedArray,
-		bytesPerCell?: number,
 	): Grid<any> {
 		if (typeof widthOrSource == "object") {
+			const width = widthOrSource.width;
+			const height = widthOrSource.height;
+			const bytes = widthOrSource.data;
+			if (bytes.length !== width * height * 4) {
+				throw new Error("ImageData byte length does not match its dimensions");
+			}
 			return Grid.wrapBytes(
 				widthOrSource.width,
 				widthOrSource.height,
 				widthOrSource.data,
-				4
 			);
 		}
 		const width = widthOrSource;
+		if (width * height! == 0) return Grid.solid(0, 0, undefined);
+		const bytesPerCell = bytes!.length / (width * height!);
+		if (!Number.isInteger(bytesPerCell)) {
+			throw new Error("Bytes length must be a multiple of (width * height)");
+		}
 		const cached = new Pipe2D(
 			width,
 			height!,
