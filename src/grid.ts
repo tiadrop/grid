@@ -823,12 +823,6 @@ export class Grid<T> {
 		bytes?: Uint8Array | Uint8ClampedArray,
 	): Grid<any> {
 		if (typeof widthOrSource == "object") {
-			const width = widthOrSource.width;
-			const height = widthOrSource.height;
-			const bytes = widthOrSource.data;
-			if (bytes.length !== width * height * 4) {
-				throw new Error("ImageData byte length does not match its dimensions");
-			}
 			return Grid.wrapBytes(
 				widthOrSource.width,
 				widthOrSource.height,
