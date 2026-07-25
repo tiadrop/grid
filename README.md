@@ -149,7 +149,7 @@ const minimap = world.values
 
 Any `Source2D<boolean>` (`{ width, height, get(x, y) }`), or function of `(x, y) => boolean`, can be used to create a layer that restricts or allows changes to cells based on their position.
 
-`writeMask(mask)` returns a zero-copy view that silently rejects changes to positions for which the mask returns `false`.
+`writeMask(mask)` returns a zero-copy view that silently rejects changes at positions for which the mask returns `false`.
 
 ```ts
 // a shape
@@ -302,6 +302,10 @@ updates the source at the computed offset.
 const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
 const imageGrid = Grid.wrapBytes(imageData);
 
+// manipulate a chunk directly
+const pixel = imageGrid.get(5, 5);
+pixel[3] /= 2; // chunks are live subarrays
+
 // optionally wrap byte chunks with a colour library
 const rgbaGrid = imageGrid.map(
 	bytes => new RGBA(bytes),
@@ -310,21 +314,16 @@ const rgbaGrid = imageGrid.map(
 
 rgbaGrid.region(0, 0, 5, 5).fill(parseRGBA("#f00"));
 
-// or manipulate a chunk directly
-const pixel = imageGrid.get(5, 5);
-pixel[3] /= 2; // chunks are live subarrays
-
 // write back
 canvasContext.putImageData(imageData, 0, 0);
 ```
 
-`wrapBytes()` can accept any byte array, with any chunk size:
+`wrapBytes()` can accept any byte array, yielding a chunk size of `(bytes.length / (width * height))`:
 
 ```ts
 const byteGrid = Grid.wrapBytes(
 	width,
 	height,
 	bytes, // Uint8Array or Uint8ClampedArray
-	bytesPerCell: 2,
 );
 ```
