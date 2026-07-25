@@ -170,7 +170,7 @@ grid.writeMask(() => Math.random() < .7).fill(4);
 
 ## Cell interface
 
-`grid.cells` provides a Pipe2D, for convenient transformation, of Cell objects, each representing a live view into a grid location.
+`grid.cells` provides a `Pipe2D`, for convenient transformation, of Cell objects, each representing a live view into a grid location.
 
 ```ts
 const topLeft = world.cells.get(0, 0);
@@ -187,6 +187,20 @@ console.log(adjacentCell?.x, adjacentCell?.y); // 1, 0
 Cells provide methods for locational utilities such as pathfinding and visibility mapping.
 
 Cells are unique to, owned by, and coordinated relative to the view that provided them. Their pathfinding and visibility mapping features are unaware of space outside of their view's bounds.
+
+### `Pipe2D` integration
+
+[`Pipe2D`](https://github.com/tiadrop/pipe2d), a transformable, live read-view of any 2D space, can be used to initialise, paste to and read from a Grid. Providing `grid.cells` and `grid.values` as pipes makes many otherwise cumbersome operations trivial:
+
+```ts
+// Conway's Game of Life
+const evolve = () => grid.paste(grid.cells.map(cell => {
+	const food = cell.getNeighbours(true).filter(c => c.value).length;
+	return cell.value ? food == 2 || food == 3 : food == 3
+}));
+```
+
+For more information about this implementation, and a live demo, see [Grid of Life](https://www.aleta.codes/#grid-gol).
 
 ### Neighbours
 
