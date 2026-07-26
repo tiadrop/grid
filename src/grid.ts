@@ -103,7 +103,7 @@ export class Cell<T> {
 	/**
 	 * Get a Cell from a location, specified as Cell or [x,y], throwing if given a foreign Cell.
 	 * @param location 
-	 * @returns 
+	 * @returns The cell
 	 */
 	private getSiblingCell(location: LocationSpec<T>) {
 		if (Array.isArray(location)) return this.gridView.cells.get(...location);
@@ -126,20 +126,34 @@ export class Cell<T> {
 		return [location.x, location.y];
 	}
 
-	/**
-	 * Returns an array of neighbouring cells.
-	 * @param includeDiagonals 
-	 * @returns Neighbouring cells
-	 */
-	getNeighbours(includeDiagonals: boolean = false) {
-		const offsets = includeDiagonals 
-			? allOffsets
-			: cardinalOffsets;
+	private _cardinalNeighbours?: readonly Cell<T>[];
+    private _allNeighbours?: readonly Cell<T>[];
 
-		return offsets
-			.map(o => this.look(o[0], o[1]))
-			.filter(v => v) as Cell<T>[];
+	/**
+	 * An array of neighbouring cells above, below, left and right.
+	 */
+	get cardinalNeighbours() {
+		return this._cardinalNeighbours ??= this.getNeighbours(false);
 	}
+
+	/**
+	 * An array of immediately adjavent cells above, including diagonals.
+	 */
+	get allNeighbours() {
+		return this._allNeighbours ??= this.getNeighbours(true);
+	}
+
+    private getNeighbours(includeDiagonals: boolean = false): Cell<T>[] {
+        const offsets = includeDiagonals ? allOffsets : cardinalOffsets;
+        const neighbours: Cell<T>[] = [];
+        
+        for (const [dx, dy] of offsets) {
+            const cell = this.look(dx, dy);
+            if (cell) neighbours.push(cell);
+        }
+        
+        return neighbours;
+    }
 
 	/**
 	 * Gets a cell located at a position relative to this one.
@@ -423,7 +437,7 @@ export class Grid<T> {
 		public readonly height: number,
 		private parentGet: GetXYFunc<T>,
 		private parentSet: (x: number, y: number, value: T) => void,
-		private batch: (cb: () => void) => void,
+		private parentBatch: (cb: () => void) => void,
 	) {
 		if (!Number.isInteger(width) || !Number.isInteger(height) || width < 0 || height < 0) {
 			throw new Error(`Grid width & height must be non-negative integers; got (${width} x ${height})`);
@@ -438,7 +452,7 @@ export class Grid<T> {
 	}
 
 	/**
-	 * A {@link https://github.com/tiadrop/pipe2d | `Pipe2D`} of this grid's Cells, providing location-based functionality
+	 * A {@link https://github.com/tiadrop/pipe2d | `Pipe2D`} of this grid's Cells, providing location-based functionality.
 	 */
 	readonly cells: Pipe2D<Cell<T>>;
 
@@ -450,11 +464,11 @@ export class Grid<T> {
 	values: Pipe2D<T>;
 
 	/**
-	 * Executes a custom callback without triggering any `change` events on the underlying GridBase until the callback concludes
+	 * Executes a custom callback without triggering any `change` events on the underlying GridBase until the callback concludes, if batching is supported by this Grid's base R/W layer.
 	 * @param fn Callback to run while change events are suppressed
 	 */
 	batchUpdate(fn: () => void) {
-		this.batch(fn);
+		this.parentBatch(fn);
 	}
 
 	/**
@@ -520,7 +534,7 @@ export class Grid<T> {
 	 */
 	paste(source: Source2D<T>, x?: number, y?: number): void
 	/**
-	 * Replaces every value in the Grid with values returned by a `(x, y) => T` predicate
+	 * Replaces every value in the Grid with values returned by a `(x, y) => T` predicate.
 	 * @param get A function, called for each cell location, returning a new value for that cell
 	 */
 	paste(get: GetXYFunc<T>): void
@@ -565,7 +579,7 @@ export class Grid<T> {
 				}
 				this.parentSet(x, y, v);
 			},
-			this.batch,
+			this.parentBatch,
 		)
 	}
 
@@ -578,7 +592,7 @@ export class Grid<T> {
 	}
 
 	/**
-	 * Perform a callback on every value in this Grid
+	 * Perform a callback on every value in this Grid, in top-row-first, left-to-right order.
 	 * @param callback Callback to run for every cell's value
 	 */
 	forEach(callback: (value: T, x: number, y: number) => void): void {
@@ -608,7 +622,7 @@ export class Grid<T> {
 			this.height,
 			(x, y) => read(this.parentGet(x, y), x, y),
 			(x, y, value) => this.parentSet(x, y, write(value, x, y)),
-			this.batch,
+			this.parentBatch,
 		)
 	}
 
@@ -626,7 +640,7 @@ export class Grid<T> {
 	/**
 	 * **Experimental**
 	 * 
-	 * Creates a regional view of this Grid by specifying a rect that can be expressed as distances from top, left, right and bottom edges
+	 * Creates a regional view of this Grid expressed as distances from top, left, right and bottom edges.
 	 * @param rect 
 	 */
 	region(rect: RectSpec): Grid<T>
@@ -666,20 +680,20 @@ export class Grid<T> {
 		return new Grid(
 			width,
 			height,
-			(tx, ty) => {
+			x === 0 && y === 0 ? this.parentGet : (tx, ty) => {
 				return this.parentGet(tx + x, ty + y)
 			},
-			(tx, ty, value) => {
+			x === 0 && y === 0 ? this.parentSet : (tx, ty, value) => {
 				this.parentSet(tx + x, ty + y, value)
 			},
-			fn => this.batch(fn),
+			this.parentBatch,
 		)
 	}
 
 	/**
 	 * Shifts all content in the grid by X/Y offsets, filling the created gaps with a specific value
-	 * @param xDelta X offset
-	 * @param yDelta Y offset
+	 * @param xDelta X offset; a positive value moves content to the right, creating a gap to the left
+	 * @param yDelta Y offset; a positive value moves content down, creating a gap at the top
 	 * @param fill Value to write at edge gaps
 	 */
 	scroll(xDelta: number, yDelta: number, fill: T): this {

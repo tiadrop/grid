@@ -181,7 +181,7 @@ describe("Grid", () => {
 			const corner = base.region(3, 3, 2, 2);
 			corner.set(1, 1, 1);
 			expect(base.get(4, 4)).toBe(1);
-			expect(base.cells.get(4, 4).getNeighbours(true)).not.toContain(1);
+			expect(base.cells.get(4, 4).allNeighbours).not.toContain(1);
 			base.set(3, 3, 11);
 			expect(corner.get(0, 0)).toBe(11);
 		});
