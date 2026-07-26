@@ -195,7 +195,7 @@ Cells are unique to, owned by, and coordinated relative to the view that provide
 ```ts
 // Conway's Game of Life
 const evolve = () => grid.paste(grid.cells.map(cell => {
-	const food = cell.getNeighbours(true).filter(c => c.value).length;
+	const food = cell.allNeighbours.filter(c => c.value).length;
 	return cell.value ? food == 2 || food == 3 : food == 3
 }));
 ```
@@ -204,11 +204,11 @@ For more information about this implementation, and a live demo, see [Grid of Li
 
 ### Neighbours
 
-`cell.getNeighbours(includeDiagonals?)` returns an array of Cells:
+`cell.cardinalNeighbours` and `cell.allNeighbours` each provide an array of adjacent Cells, the latter including diagonals:
 
 ```ts
 // derive a display number for clicked cells in Minesweeper
-const numOfAdjacentMines = clickedCell.getNeighbours(true)
+const numOfAdjacentMines = clickedCell.allNeighbours
 	.filter(cell => cell.value.isMine)
 	.length;
 ```
