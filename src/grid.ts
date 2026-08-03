@@ -822,7 +822,7 @@ export class Grid<T> {
 	 * ```
 	 * 
 	 * **Note:** Unlike with most Grids, `set` will not replace the target cell's view object.
-	 * Instead, it copies bytes into the existing live view, directly modifying theunderlying
+	 * Instead, it copies bytes into the existing live view, directly modifying the underlying
 	 * `ImageData`. Subsequent reads reflect the updated values because all views remain live
 	 * references. Mutating a subarray will mutate the wrapped byte array but will not
 	 * trigger a `change` event.
